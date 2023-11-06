@@ -1,0 +1,2 @@
+#! /bin/bash
+committed --commit-file ${1};

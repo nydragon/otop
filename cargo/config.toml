@@ -1,5 +1,0 @@
-[alias]
-cov = "tarpaulin --out html --all-targets"
-ut = "test --tests"
-d = "doc --open --no-deps --document-private-items"
-lint = "clippy"

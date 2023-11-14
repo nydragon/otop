@@ -1,8 +1,5 @@
 # otop
 
-
-
-
 ## Contributing
 
 This project follows the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) norm enforced by [committed](https://github.com/crate-ci/committed).

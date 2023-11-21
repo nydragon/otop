@@ -1,3 +1,3 @@
-[submodule "packages/backend/src/process"]
-	path = packages/backend/src/process
+[submodule "packages/backend/lib/process"]
+	path = packages/backend/lib/process
 	url = git@github.com:Nydragon/process.git

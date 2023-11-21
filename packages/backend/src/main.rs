@@ -1,10 +1,9 @@
-use axum::{
-    routing::get,
-    Router,
-};
+use axum::{routing::get, Router};
 
 #[tokio::main]
 async fn main() {
+    process::data::Data::new();
+
     // build our application with a single route
     let app = Router::new().route("/", get(|| async { "Hello, World!" }));
 

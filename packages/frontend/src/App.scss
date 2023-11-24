@@ -1,6 +1,6 @@
 header {
   text-align: center;
-  margin-bottom: 50px;
+  margin-bottom: 30px;
 
   > h1 {
     font-size: 2rem;
@@ -13,7 +13,7 @@ header {
 main {
   display: flex;
   flex-direction: column;
-  gap: 50px;
+  gap: 20px;
 
   > .gl-container {
     display: flex;
@@ -38,5 +38,5 @@ footer {
   flex-direction: column;
   align-items: center;
   gap: 50px;
-  margin-top: 50px;
+  margin-top: 20px;
 }

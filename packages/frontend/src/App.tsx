@@ -17,6 +17,7 @@ export default () => {
   return (
     <>
       <header>
+        <img src="/logo.png" alt="logo" width={75} height={75} />
         <h1>Otop - Dashboard</h1>
         <h2>Last update 2min ago</h2>
       </header>

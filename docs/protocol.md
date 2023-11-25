@@ -7,12 +7,10 @@ Payload Structure
 ---
 Gateway event payloads have a common structure, but the contents of the associated data (d) varies between the different events.
 
-| Field | Type                    | Description                                                          |
-| ----- | ----------------------- | -------------------------------------------------------------------- |
-| op    | integer                 | Gateway opcode, which indicates the payload type                     |
-| d     | ?mixed(any JSON value)* | Event data                                                           |
-| s     | ?integer*               | Sequence number of event used for resuming sessions and heartbeating |
-| t     | ?string*                | Event name                                                           |
+| Field | Type                    | Description                                      |
+| ----- | ----------------------- | ------------------------------------------------ |
+| op    | integer                 | Gateway opcode, which indicates the payload type |
+| d     | ?mixed(any JSON value)* | Event data                                       |
 
 > * s and t are null when op is not 0 (Gateway Dispatch opcode).
 
@@ -20,9 +18,7 @@ Example:
 ```json
 {
   "op": 0,
-  "d": {},
-  "s": 42,
-  "t": "GATEWAY_EVENT_NAME"
+  "d": {}
 }
 ```
 
@@ -37,8 +33,9 @@ All gateway events in Otop are tagged with an opcode that denotes the payload ty
 | 0    | Dispatch      | Receive       | An event was dispatched                                                            |
 | 1    | Heartbeat     | Send/Receive  | Fired periodically by the client to keep the connection alive                      |
 | 3    | Ask Data      | Send          | Ask for data                                                                       |
-| 10   | Hello         | Receive       | Sent immediately after connecting, contains the `heartbeat_interval` to use        |
-| 11   | Heartbeat ACK | Receive       | Sent in response to receiving a heartbeat to acknowledge that it has been received |
+| 4    | Receive Data  | Receive       | Receive data in d                                                                  |
+| 10   | Hello         | Receive       | Sent immediately after connecting, if the session is open.                         |
+| 12   | Heartbeat ACK | Receive       | Sent in response to receiving a heartbeat to acknowledge that it has been received |
 
 ### Gateway Close Event Codes
 ---

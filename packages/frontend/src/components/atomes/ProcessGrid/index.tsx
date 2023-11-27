@@ -1,17 +1,19 @@
 import "react-data-grid/lib/styles.css";
 
-import './style.scss';
+import "./style.scss";
 import { useState } from "react";
 
 import DataGrid from "react-data-grid";
 
-import { Process } from "../../../interfaces/process";
+import { Process } from "../../../types/process";
+import { getColor } from "../../../types/color";
 
 type Props = {
-    processes: Array<Process>;
+  processes: Array<Process>;
+  OpenProcess: (pid: number) => void;
 };
 
-export default ({ processes } : Props) => {
+export default ({ processes, OpenProcess }: Props) => {
   const [selectedRows, setSelectedRows] = useState(
     (): ReadonlySet<number> => new Set()
   );
@@ -20,12 +22,32 @@ export default ({ processes } : Props) => {
     return null;
   }
 
+
   return (
     <>
       <DataGrid
         columns={Object.keys(processes[0]).map((k) => ({
           key: k,
           name: k,
+          sortable: true,
+          renderCell: ({ row }: { row: any }) => (
+            <div
+              className="grid-cell"
+              style={{
+                backgroundColor: getColor(
+                  row["cpu"] > row["mem"] ? row["cpu"] : row["mem"]
+                ),
+              }}
+            >
+              {k === "name" ? (
+                <button onClick={() => OpenProcess(row["pid"])}>
+                  {row[k]}
+                </button>
+              ) : (
+                row[k]
+              )}
+            </div>
+          ),
         }))}
         rows={processes}
         defaultColumnOptions={{

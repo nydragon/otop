@@ -31,6 +31,16 @@ export default () => {
             legend: {
               display: false,
             },
+
+            tooltip: {
+              enabled: true,
+              mode: "nearest",
+              callbacks: {
+                label: (context: any) => {
+                  return " " + context.raw + "%";
+                },
+              },
+            },
           },
           scales: {
             r: {

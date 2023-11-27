@@ -1,12 +1,24 @@
 import "react";
-import MeterPie from "./components/atomes/MeterPie";
-import { faker } from "@faker-js/faker";
-import CpuChart from "./components/atomes/CpuChart";
+
 import "./App.scss";
+
+import { faker } from "@faker-js/faker";
+import { useState } from "react";
+
+import MeterPie from "./components/atomes/MeterPie";
+import CpuChart from "./components/atomes/CpuChart";
 import ProcessGrid from "./components/atomes/ProcessGrid";
 import MetersRadar from "./components/atomes/MetersRadar";
 
+import { generateProcess } from "./utils/faker";
+import ProcessModal from "./components/atomes/ProcessModal";
+import { Process } from "./types";
+
 export default () => {
+
+  const [processes, setProcesses] = useState<Process[]>(new Array(10).fill(0).map(() => generateProcess())); // [
+  const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
+
   const t = faker.number.int() % 100;
   const nbCpu = (faker.number.int() % 120) + 8;
   const cpusUsage = Array.from(Array(nbCpu).keys()).map((i) => ({
@@ -16,6 +28,7 @@ export default () => {
 
   return (
     <>
+      {selectedProcess && <ProcessModal close={() => setSelectedProcess(null)} process={selectedProcess} />}
       <header>
         <img src="/logo.png" alt="logo" width={75} height={75} />
         <h1>Otop - Dashboard</h1>
@@ -35,19 +48,13 @@ export default () => {
         </div>
         <div className="proc-container">
           <ProcessGrid
-            processes={new Array(10).fill(0).map(() => ({
-              pid: faker.number.int(),
-              user: faker.internet.userName(),
-              priority: faker.number.int() % 100,
-              nice: faker.number.int({ min: -20, max: 20 }),
-              virt: faker.number.int(),
-              resident: faker.number.int(),
-              share: faker.number.int(),
-              cpu: faker.number.int() % 100,
-              mem: faker.number.int() % 100,
-              time: faker.date.recent().getTime(),
-              command: faker.lorem.word(),
-            }))}
+            OpenProcess={(pid: number) => {
+              const process = processes.find((p) => p.pid === pid);
+              if (process) {
+                setSelectedProcess(process);
+              }
+            }}
+            processes={processes}
           />
         </div>
       </main>
@@ -56,6 +63,10 @@ export default () => {
           Made with ❤️ by{" "}
           <a href="https://limeal.fr" target="_blank">
             Limeal
+          </a>
+          {" "}and{" "}
+          <a href="https://github.com/Nydragon" target="_blank">
+            Nydragon
           </a>
         </span>
       </footer>

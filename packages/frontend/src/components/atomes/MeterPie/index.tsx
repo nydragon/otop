@@ -1,6 +1,7 @@
 import "react";
 
 import { Pie } from "../../../utils/chartjs";
+import { getColor } from "../../../types/color";
 
 import "./style.scss";
 
@@ -13,6 +14,7 @@ type Props = {
   used: number;
   width?: string;
   height?: string;
+  showLegend?: boolean;
 };
 
 export default (params: Props) => {
@@ -30,7 +32,7 @@ export default (params: Props) => {
             {
               data: [params.used, 100 -  params.used],
               backgroundColor: [
-                "rgb(255, 99, 132)",
+                getColor(params.used),
                 "rgb(54, 162, 235, 0)"
               ],
             },
@@ -41,13 +43,33 @@ export default (params: Props) => {
         options={{
           responsive: true,
           maintainAspectRatio: false,
+          color: "white",
           plugins: {
             title: {
-              display: true,
+              display: params.label !== "",
               text: params.label,
+              color: "white",
+            },
+            tooltip: {
+              enabled: true,
+              mode: "nearest",
+              callbacks: {
+                label: (context: any) => {
+                  return " " + context.raw + "%";
+                },
+              },
             },
             legend: {
-              display: false,
+              display: params.showLegend !== undefined,
+              position: "bottom",
+              align: "center",
+              labels: {
+                filter: (item: any, chart: any) => {
+                  return !item.text.includes("Not used");
+                },
+                color: "white",
+                boxWidth: 10,
+              }
             },
           },
         }}

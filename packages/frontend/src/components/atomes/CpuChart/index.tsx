@@ -1,6 +1,7 @@
 import "react";
 
 import { Bar } from "../../../utils/chartjs";
+import { getColor } from "../../../types/color";
 
 import "./style.scss";
 
@@ -25,7 +26,7 @@ export default (params: Props) => {
             {
               label: "Usage",
               data: params.cpus.map((cpu) => cpu.usage),
-              backgroundColor: "rgb(255, 99, 132)",
+              backgroundColor: params.cpus.map((cpu) => getColor(cpu.usage)),
             },
           ],
         }}
@@ -37,6 +38,15 @@ export default (params: Props) => {
           plugins: {
             legend: {
               display: false,
+            },
+            tooltip: {
+              enabled: true,
+              mode: "nearest",
+              callbacks: {
+                label: (context: any) => {
+                  return " " + context.raw + "%";
+                },
+              },
             },
           },
         }}

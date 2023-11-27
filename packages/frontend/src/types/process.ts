@@ -1,4 +1,5 @@
 export type Process = {
+    name: string;
     pid: number;
     user: string;
     priority: number;

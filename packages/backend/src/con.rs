@@ -6,7 +6,7 @@ use axum::{
 };
 use futures_util::{
     stream::{SplitSink, SplitStream},
-    StreamExt, SinkExt,
+    SinkExt, StreamExt,
 };
 
 pub struct Con {
@@ -37,7 +37,7 @@ impl Con {
         }
     }
 
-    pub async fn handle(self: &Self) {
+    pub fn handle(self: &Self) {
         /*  let (mut sender, mut receiver) = self.socket.split();
 
         // Read and write messages
@@ -64,11 +64,16 @@ impl Con {
         } */
     }
 
-    pub fn hello(self: &Self, v: u8) {
-        self.send(self.format_msg(GatewayEvent::Hello, serde_json::json!({
-            "v": v,
-            "heartbeat_interval": self.heartbeat_interval,
-        })));
+    pub async fn hello(self: &mut Self, v: u8) {
+        let msg = self.format_msg(
+            GatewayEvent::Hello,
+            serde_json::json!({
+                "v": v,
+                "heartbeat_interval": self.heartbeat_interval,
+            }),
+        );
+
+        self.send(msg).await;
     }
 
     async fn read(self: &Self, mut receiver: SplitStream<WebSocket>) {
@@ -112,7 +117,7 @@ impl Con {
             while self.message_queue.len() > 0 {
                 let (code, data) = self.message_queue.remove(0);
                 let message = self.format_msg(code, data);
-        
+
                 if sender.send(message).await.is_err() {
                     println!("Failed to send message to client");
                     return;
@@ -140,9 +145,7 @@ impl Con {
     }
 }
 
-unsafe impl Sync for Con {
-
-}
+unsafe impl Sync for Con {}
 
 /* #[cfg(test)]
 mod test {

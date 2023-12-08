@@ -36,33 +36,17 @@ impl Gateway {
         if !con.is_none() {
             return;
         }
-        
-        let con = Con::new(
+
+        let mut con = Con::new(
             socket,
             addr,
             GATEWAY_HEARTBEAT_INTERVAL,
             GATEWAY_DATA_INTERVAL,
         );
-        con.hello(GATEWAY_VERSION);
+        con.hello(GATEWAY_VERSION).await;
+
         con.handle();
+
         self.connections.push(con);
-    }
-}
-
-unsafe impl Send for Gateway {
-
-}
-
-unsafe impl Sync for Gateway {
-
-}
-
-impl Clone for Gateway {
-    fn clone(&self) -> Self {
-        Self {
-            heartbeat_interval: self.heartbeat_interval,
-            connections: self.connections,
-            max_connections: self.max_connections,
-        }
     }
 }

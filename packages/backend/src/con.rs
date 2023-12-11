@@ -4,13 +4,13 @@ use crate::gateway::GatewayEvent;
 
 use axum::{self, extract::ws::WebSocket};
 use tokio::sync::Mutex;
+use crate::gateway::{GATEWAY_HEARTBEAT_INTERVAL, GATEWAY_VERSION};
 
 pub struct Con {
     pub socket: Arc<Mutex<WebSocket>>, // The WebSocket connection
     pub addr: std::net::SocketAddr,    // The address of the client
     pub last_heartbeat: u64,           // The last heartbeat received from the client
     pub last_time_data_sent: u64,      // The last time data was sent to the client
-    pub message_queue: Vec<(GatewayEvent, serde_json::Value)>, // The message queue
     pub open: bool,
 }
 
@@ -23,14 +23,21 @@ impl Con {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_secs(),
-            message_queue: Vec::new(),
             last_time_data_sent: 0,
-            open: false,
+            open: true,
         }
     }
 
     pub async fn run(self: &mut Self) {
         // Check if message is received from the client through the WebSocket
+        self.send(
+            GatewayEvent::Hello as u8,
+            serde_json::json!({
+                "v": GATEWAY_VERSION,
+                "heartbeat_interval": GATEWAY_HEARTBEAT_INTERVAL,
+            }),
+        )
+        .await;
 
         loop {
             if let Some(msg) = self.socket.lock().await.recv().await {
@@ -156,6 +163,7 @@ impl Con {
             .expect("ALARM ALARM");
     }
 }
+
 
 /* #[cfg(test)]
 mod test {

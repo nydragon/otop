@@ -22,13 +22,14 @@ async fn ws_handler(
     let user_agent = if let Some(TypedHeader(user_agent)) = user_agent {
         user_agent.to_string()
     } else {
-        String::from("Unknown browser")
+        String::from("UB")
     };
     println!("`{}` at {} connected.", user_agent, addr);
 
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
     ws.on_upgrade(move |socket| async move {
+        println!("Client at `{}` start to handle connection.", addr);
         gateway.lock().await.handle_connection(socket, addr).await;
     })
 }
@@ -36,7 +37,12 @@ async fn ws_handler(
 #[tokio::main]
 async fn main() {
     let gateway = Arc::new(Mutex::new(Gateway::new(100)));
-    gateway.lock().await.run().await;
+    let gateway_clone = gateway.clone();
+
+    tokio::spawn(async move {
+        gateway_clone.lock().await.run().await;
+    });
+    // TODO: Call the gateway's run method to start the heartbeat and message handling loops in the background
 
     // build our application with a single route
     let app = Router::new()
@@ -56,4 +62,5 @@ async fn main() {
     )
     .await
     .unwrap();
+
 }

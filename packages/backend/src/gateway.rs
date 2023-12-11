@@ -1,11 +1,14 @@
-use std::time::Duration;
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use crate::con::Con;
 
 use axum::extract::ws::WebSocket;
 
 pub struct Gateway {
-    pub connections: Vec<Con>,
+    pub connections: Vec<Arc<Mutex<Con>>>,
     pub max_connections: u64,
 }
 
@@ -30,28 +33,36 @@ impl Gateway {
     }
 
     pub async fn handle_connection(self: &mut Self, socket: WebSocket, addr: std::net::SocketAddr) {
-        // Search for the connection with the same id
-        let con = self.connections.iter().find(|c| c.addr == addr);
+        println!("Handling connection...");
+        let is_existent = self
+            .connections
+            .iter().find(|c| {
+                if let Ok(c) = c.lock() {
+                    c.addr == addr
+                } else {
+                    false
+                }
+            });
 
-        if !con.is_none() || self.connections.len() >= self.max_connections as usize {
+        println!("Checking if connection is existent. {}", is_existent.is_some());
+        if !is_existent.is_none() || self.connections.len() >= self.max_connections as usize {
             return;
         }
 
         println!("New connection from {}", addr);
-        let mut con = Con::new(socket, addr);
+        let con = Arc::new(Mutex::new(Con::new(socket, addr)));
+        let con_clone = con.clone();
 
-        // ===== Hello =====
+        std::thread::spawn(move || {
+            tokio::runtime::Runtime::new().unwrap().block_on(async move {
+                println!("Running connection...");
+                con_clone.lock().unwrap().run().await;
+            });
+        });
 
-        con.send(
-            GatewayEvent::Hello as u8,
-            serde_json::json!({
-                "v": GATEWAY_VERSION,
-                "heartbeat_interval": GATEWAY_HEARTBEAT_INTERVAL,
-            }),
-        )
-        .await;
-
+        print!("Pushing connection to the list");
         self.connections.push(con);
+
         //self.connections.retain(|c| c.open);
     }
 
@@ -63,18 +74,27 @@ impl Gateway {
                 .unwrap()
                 .as_millis() as u64;
             // ===== Heartbeat =====
-            self.connections
-                .retain(|c| (c.last_heartbeat + GATEWAY_HEARTBEAT_INTERVAL) > current_time);
+            self.connections.retain(|c| match c.lock() {
+                Ok(c) => {
+                    println!("Client at {} has not responded to heartbeat, removing.", c.addr);
+                    (c.last_heartbeat + GATEWAY_HEARTBEAT_INTERVAL) < current_time
+                },
+                Err(_) => {
+                    eprintln!("Connection is poisoned, removing.");
+                    false
+                }
+            });
+
             // ===== Data =====
             for con in &mut self.connections {
-                if con.open {
+                if let Ok(mut con) = con.lock() {
                     if (con.last_time_data_sent + GATEWAY_DATA_INTERVAL) < current_time {
                         // Send data to client
+                        println!("Client at {} will receive data.", con.addr);
                         con.last_time_data_sent = current_time;
                     }
                 } else {
-                    con.run().await;
-                    con.open = true;
+                    eprintln!("Connection is poisoned, skipping.");
                 }
             }
         }

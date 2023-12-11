@@ -1,20 +1,17 @@
+use std::time::SystemTime;
+
 use crate::gateway::GatewayEvent;
 
 use axum::{
     self,
-    extract::ws::{Message, WebSocket},
-};
-use futures_util::{
-    stream::{SplitSink, SplitStream},
-    SinkExt, StreamExt,
+    extract::ws::WebSocket,
 };
 
 pub struct Con {
     pub socket: WebSocket,           // The WebSocket connection
     pub addr: std::net::SocketAddr,  // The address of the client
-    pub last_heartbeat: Option<u64>, // The last heartbeat received from the client
-    pub heartbeat_interval: u64,     // The interval between two data messages to sent
-    pub data_interval: u64,          // The interval between two data messages to sent
+    pub last_heartbeat: u64, // The last heartbeat received from the client
+    pub last_time_data_sent: u64, // The last time data was sent to the client
     pub message_queue: Vec<(GatewayEvent, serde_json::Value)>, // The message queue
     pub open: bool,
 }
@@ -23,26 +20,21 @@ impl Con {
     pub fn new(
         socket: WebSocket,
         addr: std::net::SocketAddr,
-        heartbeat_interval: u64,
-        data_interval: u64,
     ) -> Self {
         Self {
             socket,
             addr,
-            last_heartbeat: None,
-            heartbeat_interval: heartbeat_interval,
-            data_interval: data_interval,
+            last_heartbeat: SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
             message_queue: Vec::new(),
+            last_time_data_sent: 0,
             open: true,
         }
     }
-
-    pub fn handle(self: &Self) {
-        /*  let (mut sender, mut receiver) = self.socket.split();
-
-        // Read and write messages
-        let rth = tokio::spawn(self.read(receiver));
-        let wth = tokio::spawn(self.write(sender));
+/* 
+    pub fn handle(self: &mut Self) {
 
         // Thread that will check every second if heartbeat is received
         loop {
@@ -57,26 +49,11 @@ impl Con {
             if self.last_heartbeat.is_none() || now < (self.last_heartbeat.unwrap() + self.heartbeat_interval) {
                 continue;
             }
+        }
+    } */
 
-            // Kill the connection (Stop the threads)
-            rth.abort();
-            wth.abort();
-        } */
-    }
 
-    pub async fn hello(self: &mut Self, v: u8) {
-        let msg = self.format_msg(
-            GatewayEvent::Hello,
-            serde_json::json!({
-                "v": v,
-                "heartbeat_interval": self.heartbeat_interval,
-            }),
-        );
-
-        self.send(msg).await;
-    }
-
-    async fn read(self: &Self, mut receiver: SplitStream<WebSocket>) {
+    /* async fn read(self: &mut Self, mut receiver: SplitStream<WebSocket>) {
         while let Some(message) = receiver.next().await {
             let message = message.unwrap();
 
@@ -110,9 +87,9 @@ impl Con {
                 }
             }
         }
-    }
+    } */
 
-    async fn write(self: &mut Self, mut sender: SplitSink<WebSocket, Message>) {
+    /* async fn write(self: &mut Self, mut sender: SplitSink<WebSocket, Message>) {
         while self.open {
             while self.message_queue.len() > 0 {
                 let (code, data) = self.message_queue.remove(0);
@@ -124,28 +101,18 @@ impl Con {
                 }
             }
         }
-    }
+    } */
 
-    async fn send(self: &mut Self, message: Message) {
-        if self.socket.send(message).await.is_err() {
-            println!("Failed to send message to client");
-            return;
-        }
-    }
-
-    // Send a message to the client
-    fn format_msg(self: &mut Self, code: GatewayEvent, data: serde_json::Value) -> Message {
+    pub async fn send(self: &mut Self, code: u8, data: serde_json::Value) {
         let json: serde_json::Value = serde_json::json!({
             "op": code as u8,
             "d": data
         });
 
         let message = axum::extract::ws::Message::Text(json.to_string());
-        message
+        self.socket.send(message).await;
     }
 }
-
-unsafe impl Sync for Con {}
 
 /* #[cfg(test)]
 mod test {

@@ -29,13 +29,13 @@ async fn ws_handler(
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
     ws.on_upgrade(move |socket| async move {
-        gateway.lock().await.handle(socket, addr).await;
+        gateway.lock().await.handle_connection(socket, addr).await;
     })
 }
 
 #[tokio::main]
 async fn main() {
-    let gateway = Arc::new(Mutex::new(Gateway::new(42100, 100)));
+    let gateway = Arc::new(Mutex::new(Gateway::new(100)));
 
     // build our application with a single route
     let app = Router::new()

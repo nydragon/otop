@@ -73,7 +73,7 @@ impl Gateway {
                         con.last_time_data_sent = current_time;
                     }
                 } else {
-                    con.run();
+                    con.run().await;
                     con.open = true;
                 }
             }

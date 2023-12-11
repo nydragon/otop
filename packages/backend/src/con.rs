@@ -1,28 +1,23 @@
-use std::time::SystemTime;
+use std::{sync::Arc, time::SystemTime};
 
 use crate::gateway::GatewayEvent;
 
-use axum::{
-    self,
-    extract::ws::WebSocket,
-};
+use axum::{self, extract::ws::WebSocket};
+use tokio::sync::Mutex;
 
 pub struct Con {
-    pub socket: WebSocket,           // The WebSocket connection
-    pub addr: std::net::SocketAddr,  // The address of the client
-    pub last_heartbeat: u64, // The last heartbeat received from the client
-    pub last_time_data_sent: u64, // The last time data was sent to the client
+    pub socket: Arc<Mutex<WebSocket>>, // The WebSocket connection
+    pub addr: std::net::SocketAddr,    // The address of the client
+    pub last_heartbeat: u64,           // The last heartbeat received from the client
+    pub last_time_data_sent: u64,      // The last time data was sent to the client
     pub message_queue: Vec<(GatewayEvent, serde_json::Value)>, // The message queue
     pub open: bool,
 }
 
 impl Con {
-    pub fn new(
-        socket: WebSocket,
-        addr: std::net::SocketAddr,
-    ) -> Self {
+    pub fn new(socket: WebSocket, addr: std::net::SocketAddr) -> Self {
         Self {
-            socket,
+            socket: Arc::new(Mutex::new(socket)),
             addr,
             last_heartbeat: SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -38,7 +33,7 @@ impl Con {
         // Check if message is received from the client through the WebSocket
 
         loop {
-            if let Some(msg) = self.socket.recv().await {
+            if let Some(msg) = self.socket.lock().await.recv().await {
                 if let Ok(msg) = msg {
                     // Get the message and convert it to json
                     let msg = msg.to_text().unwrap();
@@ -77,7 +72,7 @@ impl Con {
             }
         }
     }
-/* 
+    /*
     pub fn handle(self: &mut Self) {
 
         // Thread that will check every second if heartbeat is received
@@ -95,7 +90,6 @@ impl Con {
             }
         }
     } */
-
 
     /* async fn read(self: &mut Self, mut receiver: SplitStream<WebSocket>) {
         while let Some(message) = receiver.next().await {
@@ -154,7 +148,12 @@ impl Con {
         });
 
         let message = axum::extract::ws::Message::Text(json.to_string());
-        self.socket.send(message).await;
+        self.socket
+            .lock()
+            .await
+            .send(message)
+            .await
+            .expect("ALARM ALARM");
     }
 }
 

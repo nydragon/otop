@@ -36,6 +36,7 @@ async fn ws_handler(
 #[tokio::main]
 async fn main() {
     let gateway = Arc::new(Mutex::new(Gateway::new(100)));
+    gateway.lock().await.run().await;
 
     // build our application with a single route
     let app = Router::new()

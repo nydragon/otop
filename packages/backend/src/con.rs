@@ -30,7 +30,51 @@ impl Con {
                 .as_secs(),
             message_queue: Vec::new(),
             last_time_data_sent: 0,
-            open: true,
+            open: false,
+        }
+    }
+
+    pub async fn run(self: &mut Self) {
+        // Check if message is received from the client through the WebSocket
+
+        loop {
+            if let Some(msg) = self.socket.recv().await {
+                if let Ok(msg) = msg {
+                    // Get the message and convert it to json
+                    let msg = msg.to_text().unwrap();
+
+                    if msg.is_empty() {
+                        println!("Received an empty message from the client !");
+                        return;
+                    }
+
+                    println!("Received a message from the client: {:?}", msg);
+                    let json = serde_json::from_str(msg);
+
+                    if json.is_err() {
+                        println!("Could not parse json");
+                        return;
+                    }
+
+                    let json: serde_json::Value = json.unwrap();
+                    let code = json["op"].as_i64().unwrap();
+
+                    let op = code as i64;
+                    match op {
+                        // Handle the Heartbeat event
+                        op if op == GatewayEvent::Heartbeat as i64 => {
+                            self.last_heartbeat = SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .unwrap()
+                                .as_secs();
+                            println!("Received a heartbeat from the client !");
+                        }
+                        _ => {
+                            println!("Received an unknown/illegal message from the client !");
+                        }
+                    }
+                }
+            }
         }
     }
 /* 

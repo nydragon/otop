@@ -1,14 +1,13 @@
-use std::{
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::sync::Arc;
 
 use crate::con::Con;
 
 use axum::extract::ws::WebSocket;
+use tokio::sync::Mutex;
 
 pub struct Gateway {
-    pub connections: Vec<Arc<Mutex<Con>>>,
+    //pub websockets: Vec<Arc<Mutex<Con>>>,
+    pub connections: Vec<(WebSocket, Arc<Mutex<Con>>)>,
     pub max_connections: u64,
 }
 
@@ -24,6 +23,75 @@ pub const GATEWAY_VERSION: u8 = 6;
 pub const GATEWAY_HEARTBEAT_INTERVAL: u64 = 42000; // 42 seconds
 pub const GATEWAY_DATA_INTERVAL: u64 = 120000; // 120 seconds
 
+async fn launch_con(socket: &WebSocket, con: Arc<Mutex<Con>>) {
+
+        
+
+
+    println!("Sending hello...");
+    con.lock()
+        .await
+        .send(
+            socket,
+            GatewayEvent::Hello as u8,
+            serde_json::json!({
+                "v": GATEWAY_VERSION,
+                "heartbeat_interval": GATEWAY_HEARTBEAT_INTERVAL,
+            }),
+        )
+        .await;
+
+    println!("Starting client messages loop...");
+   /*  loop {
+        if let Some(msg) = socket.recv().await {
+            if let Ok(msg) = msg {
+                // Get the message and convert it to json
+                let msg = msg.to_text().unwrap();
+
+                if msg.is_empty() {
+                    println!("Received an empty message from the client !");
+                    return;
+                }
+
+                println!("Received a message from the client: {:?}", msg);
+                let json = serde_json::from_str(msg);
+
+                if json.is_err() {
+                    println!("Could not parse json");
+                    return;
+                }
+
+                let json: serde_json::Value = json.unwrap();
+                let code = json["op"].as_i64().unwrap();
+
+                let op = code as i64;
+                println!("{}", con.lock().await.last_heartbeat);
+                match op {
+                    // Handle the Heartbeat event
+                    op if op == GatewayEvent::Heartbeat as i64 => {
+                        println!("Received a heartbeat from the client !");
+                        /* con.lock().await.last_heartbeat = SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs(); */
+                        //con.lock()
+                        //    .await
+                        //    .send(GatewayEvent::HeartbeatAck as u8, serde_json::json!({}))
+                        //    .await;
+                    }
+                    _ => {
+                        println!("Received an unknown/illegal message from the client !");
+                    }
+                }
+            } else {
+                println!("Received an illegal message from the client !");
+                return;
+            }
+        }
+    } */
+}
+
+
 impl Gateway {
     pub fn new(max_connections: u64) -> Self {
         Self {
@@ -34,69 +102,28 @@ impl Gateway {
 
     pub async fn handle_connection(self: &mut Self, socket: WebSocket, addr: std::net::SocketAddr) {
         println!("Handling connection...");
-        let is_existent = self
-            .connections
-            .iter().find(|c| {
-                if let Ok(c) = c.lock() {
-                    c.addr == addr
-                } else {
-                    false
-                }
-            });
 
-        println!("Checking if connection is existent. {}", is_existent.is_some());
-        if !is_existent.is_none() || self.connections.len() >= self.max_connections as usize {
+        for (socket, con) in &self.connections {
+            if con.lock().await.addr == addr {
+                println!("Connection already exists, aborting.");
+                return;
+            }
+        }
+
+        if self.connections.len() >= self.max_connections as usize {
+            println!("Connection already exists, aborting.");
             return;
         }
 
         println!("New connection from {}", addr);
-        let con = Arc::new(Mutex::new(Con::new(socket, addr)));
+        let con = Arc::new(Mutex::new(Con::new(addr)));
         let con_clone = con.clone();
 
-        std::thread::spawn(move || {
-            tokio::runtime::Runtime::new().unwrap().block_on(async move {
-                println!("Running connection...");
-                con_clone.lock().unwrap().run().await;
-            });
-        });
-
-        print!("Pushing connection to the list");
-        self.connections.push(con);
+        self.connections.push((socket, con_clone));
+        tokio::spawn(launch_con(&socket, con));
+        println!("Pushing connection to the list...");
 
         //self.connections.retain(|c| c.open);
     }
 
-    pub async fn run(self: &mut Self) {
-        loop {
-            tokio::time::sleep(Duration::from_millis(100)).await;
-            let current_time = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_millis() as u64;
-            // ===== Heartbeat =====
-            self.connections.retain(|c| match c.lock() {
-                Ok(c) => {
-                    println!("Client at {} has not responded to heartbeat, removing.", c.addr);
-                    (c.last_heartbeat + GATEWAY_HEARTBEAT_INTERVAL) < current_time
-                },
-                Err(_) => {
-                    eprintln!("Connection is poisoned, removing.");
-                    false
-                }
-            });
-
-            // ===== Data =====
-            for con in &mut self.connections {
-                if let Ok(mut con) = con.lock() {
-                    if (con.last_time_data_sent + GATEWAY_DATA_INTERVAL) < current_time {
-                        // Send data to client
-                        println!("Client at {} will receive data.", con.addr);
-                        con.last_time_data_sent = current_time;
-                    }
-                } else {
-                    eprintln!("Connection is poisoned, skipping.");
-                }
-            }
-        }
-    }
 }

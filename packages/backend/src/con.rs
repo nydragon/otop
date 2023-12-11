@@ -1,23 +1,17 @@
-use std::{sync::Arc, time::SystemTime};
-
-use crate::gateway::GatewayEvent;
+use std::time::SystemTime;
 
 use axum::{self, extract::ws::WebSocket};
-use tokio::sync::Mutex;
-use crate::gateway::{GATEWAY_HEARTBEAT_INTERVAL, GATEWAY_VERSION};
 
 pub struct Con {
-    pub socket: Arc<Mutex<WebSocket>>, // The WebSocket connection
-    pub addr: std::net::SocketAddr,    // The address of the client
-    pub last_heartbeat: u64,           // The last heartbeat received from the client
-    pub last_time_data_sent: u64,      // The last time data was sent to the client
+    pub addr: std::net::SocketAddr, // The address of the client
+    pub last_heartbeat: u64,        // The last heartbeat received from the client
+    pub last_time_data_sent: u64,   // The last time data was sent to the client
     pub open: bool,
 }
 
 impl Con {
-    pub fn new(socket: WebSocket, addr: std::net::SocketAddr) -> Self {
+    pub fn new(addr: std::net::SocketAddr) -> Self {
         Self {
-            socket: Arc::new(Mutex::new(socket)),
             addr,
             last_heartbeat: SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -28,7 +22,7 @@ impl Con {
         }
     }
 
-    pub async fn run(self: &mut Self) {
+    /* pub async fn run(self: &mut Self) {
         // Check if message is received from the client through the WebSocket
         self.send(
             GatewayEvent::Hello as u8,
@@ -40,7 +34,7 @@ impl Con {
         .await;
 
         loop {
-            if let Some(msg) = self.socket.lock().await.recv().await {
+            if let Some(msg) = self.socket.recv().await {
                 if let Ok(msg) = msg {
                     // Get the message and convert it to json
                     let msg = msg.to_text().unwrap();
@@ -75,10 +69,13 @@ impl Con {
                             println!("Received an unknown/illegal message from the client !");
                         }
                     }
+                } else {
+                    println!("Received an illegal message from the client !");
+                    return;
                 }
             }
         }
-    }
+    } */
     /*
     pub fn handle(self: &mut Self) {
 
@@ -148,22 +145,17 @@ impl Con {
         }
     } */
 
-    pub async fn send(self: &mut Self, code: u8, data: serde_json::Value) {
+    pub async fn send(self: &mut Self, socket: &WebSocket, code: u8, data: serde_json::Value) {
         let json: serde_json::Value = serde_json::json!({
             "op": code as u8,
             "d": data
         });
 
+
         let message = axum::extract::ws::Message::Text(json.to_string());
-        self.socket
-            .lock()
-            .await
-            .send(message)
-            .await
-            .expect("ALARM ALARM");
+        socket.send(message).await.expect("ALARM ALARM");
     }
 }
-
 
 /* #[cfg(test)]
 mod test {

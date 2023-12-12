@@ -13,7 +13,12 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
 
-use crate::gateway::{Gateway, GATEWAY_HEARTBEAT_INTERVAL};
+use crate::gateway::{Gateway, GATEWAY_HEARTBEAT_INTERVAL, GatewayEvent};
+use process::{
+    modules::{cpu::CPUs, memory::Memory},
+    parser::Parser,
+    process::Processes,
+};
 
 async fn ws_handler(
     State(gateway): State<Arc<Mutex<Gateway>>>,
@@ -84,12 +89,19 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
 
         // ===== Data =====
         println!("Preparing to send data...");
-        for (_, con) in &gateway.lock().await.connections {
+        for (socket, con) in &gateway.lock().await.connections {
             match con.try_lock() {
                 Ok(mut c) => {
-                    if (c.last_time_data_sent + GATEWAY_DATA_INTERVAL) < current_time {
+                    let diff = current_time - c.last_time_data_sent;
+                    if diff > GATEWAY_DATA_INTERVAL {
                         // Send data to client
                         println!("Client at {} will receive data.", c.addr);
+
+                        c.send(socket.clone(), GatewayEvent::Data as u8, serde_json::json!({
+                            "cpus": process::modules::cpu::CPUs::parse().unwrap(),
+                            "memory": process::modules::memory::Memory::parse().unwrap()
+                        })).await;
+
                         c.last_time_data_sent = current_time;
                     } else {
                         // Don't send data to client

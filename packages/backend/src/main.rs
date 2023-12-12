@@ -14,7 +14,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
 
-use crate::gateway::{Gateway, GATEWAY_HEARTBEAT_INTERVAL, GatewayEvent};
+use crate::gateway::{Gateway, GatewayEvent, GATEWAY_HEARTBEAT_INTERVAL};
 
 async fn ws_handler(
     State(gateway): State<Arc<Mutex<Gateway>>>,
@@ -49,12 +49,20 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
             .as_millis() as u64;
         // ===== Heartbeat =====
         let mut remove_idxs: Vec<usize> = Vec::new();
-        println!("Gateway has {} connections.", gateway.lock().await.connections.len());
+        println!(
+            "Gateway has {} connections.",
+            gateway.lock().await.connections.len()
+        );
         println!("Current Time: {}", current_time);
         for (i, con) in gateway.lock().await.connections.iter().enumerate() {
             match con.1.try_lock() {
                 Ok(mut c) => {
-                    println!("Checking heartbeat for client at {}, last heartbeat {} was {}s ago", c.addr, c.last_heartbeat, ((current_time - c.last_heartbeat) / 1000) as f32);
+                    println!(
+                        "Checking heartbeat for client at {}, last heartbeat {} was {}s ago",
+                        c.addr,
+                        c.last_heartbeat,
+                        ((current_time - c.last_heartbeat) / 1000) as f32
+                    );
                     let diff = current_time - c.last_heartbeat;
                     if c.last_heartbeat > 0 && diff > GATEWAY_HEARTBEAT_INTERVAL {
                         // Remove the connection
@@ -79,7 +87,16 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
         }
 
         for i in remove_idxs {
-            gateway.lock().await.connections.get(i).unwrap().1.lock().await.open = false;
+            gateway
+                .lock()
+                .await
+                .connections
+                .get(i)
+                .unwrap()
+                .1
+                .lock()
+                .await
+                .open = false;
             gateway.lock().await.connections.remove(i);
         }
 
@@ -93,10 +110,15 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
                         // Send data to client
                         println!("Client at {} will receive data.", c.addr);
 
-                        c.send(socket.clone(), GatewayEvent::Data as u8, serde_json::json!({
-                            "cpus": process::modules::cpu::CPUs::parse().unwrap(),
-                            "memory": process::modules::memory::Memory::parse().unwrap()
-                        })).await;
+                        c.send(
+                            socket.clone(),
+                            GatewayEvent::Data as u8,
+                            serde_json::json!({
+                                "cpus": process::modules::cpu::CPUs::parse().unwrap(),
+                                "memory": process::modules::memory::Memory::parse().unwrap()
+                            }),
+                        )
+                        .await;
 
                         c.last_time_data_sent = current_time;
                     } else {

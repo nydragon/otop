@@ -5,12 +5,18 @@ on: pull_request
 env:
   CARGO_TERM_COLOR: always
 
+defaults:
+  run:
+    working-directory: packages/backend
+
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: recursive
       - name: Build
         run: |
           cargo build --verbose;
@@ -22,7 +28,8 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
-
+        with:
+          submodules: recursive
       - name: Run tests
         run: |
           cargo test --tests --verbose
@@ -33,6 +40,8 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -40,13 +49,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Check formatting - rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+        run: cargo fmt --check
 
       - name: Check good practice - clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -Dwarnings
+        run: cargo clippy -- -Dwarnings

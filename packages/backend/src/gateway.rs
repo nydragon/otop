@@ -20,8 +20,8 @@ pub enum GatewayEvent {
 }
 
 pub const GATEWAY_VERSION: u8 = 6;
-pub const GATEWAY_HEARTBEAT_INTERVAL: u64 = 42000; // 42 seconds
-pub const GATEWAY_DATA_INTERVAL: u64 = 120000; // 120 seconds
+pub const GATEWAY_HEARTBEAT_INTERVAL: u64 = 12 * 1000; // 12 seconds
+pub const GATEWAY_DATA_INTERVAL: u64 = 20 * 1000; // 20 seconds
 
 async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
     println!("Sending hello...");
@@ -40,7 +40,9 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
     println!("Starting client messages loop...");
     let mut map: HashMap<u8, serde_json::Value> = HashMap::new();
     loop {
+
         if let Some(msg) = socket.lock().await.recv().await {
+
             if let Ok(msg) = msg {
                 // Get the message and convert it to json
                 let msg = msg.to_text().unwrap();
@@ -81,13 +83,14 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
                 println!("Received an illegal message from the client !");
                 return;
             }
+        } else {
+            break;
         }
 
         for (op, data) in &map {
             con.lock().await.send(socket.clone(), *op, data.clone()).await;
         }
         map.clear();
-        
     }
 }
 

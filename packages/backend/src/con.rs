@@ -14,10 +14,7 @@ impl Con {
     pub fn new(addr: std::net::SocketAddr) -> Self {
         Self {
             addr,
-            last_heartbeat: SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
+            last_heartbeat: 0,
             last_time_data_sent: 0,
             open: true,
         }

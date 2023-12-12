@@ -47,37 +47,28 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
             .unwrap()
             .as_millis() as u64;
         // ===== Heartbeat =====
-        /* gateway.lock().await.connections.retain(|c| match c.lock() {
-            Ok(c) => {
-                let res = (c.last_heartbeat + GATEWAY_HEARTBEAT_INTERVAL) < current_time;
-                if !res {
-                    println!("Client at {} has not responded to heartbeat, removing.", c.addr);
-                }
-                res
-            },
-            Err(_) => {
-                eprintln!("Connection is poisoned, removing.");
-                false
-            }
-        }); */
-        println!("Checking for heartbeat responses...");
-        //let mut remove_idxs: Vec<usize> = Vec::new();
+        let mut remove_idxs: Vec<usize> = Vec::new();
         // Refactor above code because mutex is the tokio mutex
-        let gateway = gateway.lock().await;
+        let mut gateway = gateway.lock().await;
         println!("Gateway has {} connections.", gateway.connections.len());
-        for (_, con) in &gateway.connections {
-            match con.try_lock() {
-                Ok(c) => {
-                    println!("Hello !");
-                    println!("Checking heartbeat for client at {}...", c.addr);
-                    if (c.last_heartbeat + GATEWAY_HEARTBEAT_INTERVAL) > current_time {
+        println!("Current Time: {}", current_time);
+        for (i, con) in gateway.connections.iter().enumerate() {
+            match con.1.try_lock() {
+                Ok(mut c) => {
+                    println!("Checking heartbeat for client at {}, last heartbeat {} was {}s ago", c.addr, c.last_heartbeat, ((current_time - c.last_heartbeat) / 1000) as f32);
+                    let diff = current_time - c.last_heartbeat;
+                    if c.last_heartbeat > 0 && diff > GATEWAY_HEARTBEAT_INTERVAL {
                         // Remove the connection
                         println!(
                             "Client at {} has not responded to heartbeat, removing.",
                             c.addr
                         );
-                        //remove_idxs.push(i);
+                        // Close the websocket
+                        remove_idxs.push(i);
                     } else {
+                        if c.last_heartbeat == 0 {
+                            c.last_heartbeat = current_time;
+                        }
                         // Send heartbeat
                         println!("Waiting heartbeat from client at {}....", c.addr);
                     }
@@ -89,25 +80,13 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
             }
         }
 
-        // for i in remove_idxs {
-        //     gateway.lock().await.connections.remove(i);
-        // }
-
-        // gateway.connections.retain(|c| {
-        //     rt.block_on(async {
-        //         let res =
-        //             (c.lock().await.last_heartbeat + GATEWAY_HEARTBEAT_INTERVAL) < current_time;
-        //         if !res {
-        //             println!(
-        //                 "Client at {} has not responded to heartbeat, removing.",
-        //                 c.lock().await.addr
-        //             );
-        //         }
-        //         res
-        //     })
-        // });
+        for i in remove_idxs {
+            //gateway.connections.get(i).unwrap().0.lock().await.close();
+            gateway.connections.remove(i);
+        }
 
         // ===== Data =====
+        println!("Preparing to send data...");
         for (_, con) in &gateway.connections {
             match con.try_lock() {
                 Ok(mut c) => {

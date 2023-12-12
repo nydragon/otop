@@ -1,0 +1,47 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - "main"
+
+env:
+  BIN_DIR: "target/release"
+  BIN: otop
+
+jobs:
+  arm-32-release:
+    runs-on: ubuntu-latest
+    env:
+      TARGET: arm-unknown-linux-gnueabihf
+    steps:
+      - name: Setting up environment
+        run: |
+          cargo install cross
+      - uses: actions/checkout@v3
+      - name: Build All Binaries
+        run: |
+          cross build --target $TARGET --release --verbose
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.TOKEN }}"
+          automatic_release_tag: "latest-arm-32"
+          prerelease: true
+          title: "ARM 32 Bit release"
+          files: |
+            ./target/${{ env.TARGET }}/release/${{ env.BIN }}
+
+  x86-64-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build All Binaries
+        run: cargo build --release --verbose
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.TOKEN }}"
+          automatic_release_tag: "latest-x86-64"
+          prerelease: true
+          title: "x86 64 Bit release"
+          files: |
+            ${{ env.BIN_DIR }}/${{ env.BIN }}

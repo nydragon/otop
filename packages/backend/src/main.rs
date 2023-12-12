@@ -48,11 +48,9 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
             .as_millis() as u64;
         // ===== Heartbeat =====
         let mut remove_idxs: Vec<usize> = Vec::new();
-        // Refactor above code because mutex is the tokio mutex
-        let mut gateway = gateway.lock().await;
-        println!("Gateway has {} connections.", gateway.connections.len());
+        println!("Gateway has {} connections.", gateway.lock().await.connections.len());
         println!("Current Time: {}", current_time);
-        for (i, con) in gateway.connections.iter().enumerate() {
+        for (i, con) in gateway.lock().await.connections.iter().enumerate() {
             match con.1.try_lock() {
                 Ok(mut c) => {
                     println!("Checking heartbeat for client at {}, last heartbeat {} was {}s ago", c.addr, c.last_heartbeat, ((current_time - c.last_heartbeat) / 1000) as f32);
@@ -63,7 +61,6 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
                             "Client at {} has not responded to heartbeat, removing.",
                             c.addr
                         );
-                        // Close the websocket
                         remove_idxs.push(i);
                     } else {
                         if c.last_heartbeat == 0 {
@@ -75,19 +72,19 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
                 }
                 Err(_) => {
                     println!("Connection is poisoned, removing.");
-                    //remove_idxs.push(i);
+                    remove_idxs.push(i);
                 }
             }
         }
 
         for i in remove_idxs {
-            //gateway.connections.get(i).unwrap().0.lock().await.close();
-            gateway.connections.remove(i);
+            gateway.lock().await.connections.get(i).unwrap().1.lock().await.open = false;
+            gateway.lock().await.connections.remove(i);
         }
 
         // ===== Data =====
         println!("Preparing to send data...");
-        for (_, con) in &gateway.connections {
+        for (_, con) in &gateway.lock().await.connections {
             match con.try_lock() {
                 Ok(mut c) => {
                     if (c.last_time_data_sent + GATEWAY_DATA_INTERVAL) < current_time {
@@ -100,8 +97,7 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
                     }
                 }
                 Err(_) => {
-                    println!("Connection is poisoned, removing.");
-                    //remove_idxs.push(i);
+                    println!("Connection is poisoned.");
                 }
             }
         }

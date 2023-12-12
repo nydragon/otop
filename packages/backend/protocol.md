@@ -30,7 +30,6 @@ All gateway events in Otop are tagged with an opcode that denotes the payload ty
 
 | Code | Name          | Client Action | Description                                                                        |
 | ---- | ------------- | ------------- | ---------------------------------------------------------------------------------- |
-| 0    | Dispatch      | Receive       | An event was dispatched                                                            |
 | 1    | Heartbeat     | Send/Receive  | Fired periodically by the client to keep the connection alive                      |
 | 2    | Data          | Receive       | The desired data                                                                   |
 | 10   | Hello         | Receive       | Sent immediately after connecting, if the session is open.                         |

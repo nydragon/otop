@@ -8,17 +8,13 @@ use axum::{extract::ws::WebSocketUpgrade, routing::get, Router};
 use axum_extra::TypedHeader;
 use gateway::GATEWAY_DATA_INTERVAL;
 use headers::{self};
+use process::parser::Parser;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
 
 use crate::gateway::{Gateway, GATEWAY_HEARTBEAT_INTERVAL, GatewayEvent};
-use process::{
-    modules::{cpu::CPUs, memory::Memory},
-    parser::Parser,
-    process::Processes,
-};
 
 async fn ws_handler(
     State(gateway): State<Arc<Mutex<Gateway>>>,

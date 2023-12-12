@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc, time::SystemTime};
+use std::{sync::Arc, time::SystemTime};
 
 use crate::con::Con;
 
@@ -14,7 +14,6 @@ pub struct Gateway {
 }
 
 pub enum GatewayEvent {
-    Dispatch = 0,
     Heartbeat = 1,
     Data = 2,
     Hello = 10,
@@ -23,7 +22,7 @@ pub enum GatewayEvent {
 
 pub const GATEWAY_VERSION: u8 = 6;
 pub const GATEWAY_HEARTBEAT_INTERVAL: u64 = 12 * 1000; // 12 seconds
-pub const GATEWAY_DATA_INTERVAL: u64 = 20 * 1000; // 20 seconds
+pub const GATEWAY_DATA_INTERVAL: u64 = 5 * 1000; // 5 seconds
 
 async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
     

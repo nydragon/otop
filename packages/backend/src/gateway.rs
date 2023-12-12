@@ -28,7 +28,7 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
     con.lock()
         .await
         .send(
-            socket,
+            socket.clone(),
             GatewayEvent::Hello as u8,
             serde_json::json!({
                 "v": GATEWAY_VERSION,
@@ -38,8 +38,8 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
         .await;
 
     println!("Starting client messages loop...");
-    /*  loop {
-        if let Some(msg) = socket.recv().await {
+    loop {
+        if let Some(msg) = socket.lock().await.recv().await {
             if let Ok(msg) = msg {
                 // Get the message and convert it to json
                 let msg = msg.to_text().unwrap();
@@ -84,7 +84,7 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
                 return;
             }
         }
-    } */
+    }
 }
 
 impl Gateway {

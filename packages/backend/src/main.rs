@@ -89,22 +89,23 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
             }
         }
 
-        /* for i in remove_idxs {
-            gateway.lock().await.connections.remove(i);
-        } */
-        /* gateway.lock().await.connections.retain(|c| {
-            rt.block_on(async {
-                let res =
-                    (c.lock().await.last_heartbeat + GATEWAY_HEARTBEAT_INTERVAL) < current_time;
-                if !res {
-                    println!(
-                        "Client at {} has not responded to heartbeat, removing.",
-                        c.lock().await.addr
-                    );
-                }
-                res
-            })
-        }); */
+        // for i in remove_idxs {
+        //     gateway.lock().await.connections.remove(i);
+        // }
+
+        // gateway.connections.retain(|c| {
+        //     rt.block_on(async {
+        //         let res =
+        //             (c.lock().await.last_heartbeat + GATEWAY_HEARTBEAT_INTERVAL) < current_time;
+        //         if !res {
+        //             println!(
+        //                 "Client at {} has not responded to heartbeat, removing.",
+        //                 c.lock().await.addr
+        //             );
+        //         }
+        //         res
+        //     })
+        // });
 
         // ===== Data =====
         for (_, con) in &gateway.connections {

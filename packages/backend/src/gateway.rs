@@ -7,7 +7,7 @@ use tokio::sync::Mutex;
 
 pub struct Gateway {
     //pub websockets: Vec<Arc<Mutex<Con>>>,
-    pub connections: Vec<(WebSocket, Arc<Mutex<Con>>)>,
+    pub connections: Vec<(Arc<Mutex<WebSocket>>, Arc<Mutex<Con>>)>,
     pub max_connections: u64,
 }
 
@@ -23,11 +23,7 @@ pub const GATEWAY_VERSION: u8 = 6;
 pub const GATEWAY_HEARTBEAT_INTERVAL: u64 = 42000; // 42 seconds
 pub const GATEWAY_DATA_INTERVAL: u64 = 120000; // 120 seconds
 
-async fn launch_con(socket: &WebSocket, con: Arc<Mutex<Con>>) {
-
-        
-
-
+async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
     println!("Sending hello...");
     con.lock()
         .await
@@ -42,7 +38,7 @@ async fn launch_con(socket: &WebSocket, con: Arc<Mutex<Con>>) {
         .await;
 
     println!("Starting client messages loop...");
-   /*  loop {
+    /*  loop {
         if let Some(msg) = socket.recv().await {
             if let Ok(msg) = msg {
                 // Get the message and convert it to json
@@ -91,7 +87,6 @@ async fn launch_con(socket: &WebSocket, con: Arc<Mutex<Con>>) {
     } */
 }
 
-
 impl Gateway {
     pub fn new(max_connections: u64) -> Self {
         Self {
@@ -100,10 +95,14 @@ impl Gateway {
         }
     }
 
-    pub async fn handle_connection(self: &mut Self, socket: WebSocket, addr: std::net::SocketAddr) {
+    pub async fn handle_connection(
+        self: &mut Self,
+        socket: Arc<Mutex<WebSocket>>,
+        addr: std::net::SocketAddr,
+    ) {
         println!("Handling connection...");
 
-        for (socket, con) in &self.connections {
+        for (_, con) in &self.connections {
             if con.lock().await.addr == addr {
                 println!("Connection already exists, aborting.");
                 return;
@@ -119,11 +118,10 @@ impl Gateway {
         let con = Arc::new(Mutex::new(Con::new(addr)));
         let con_clone = con.clone();
 
-        self.connections.push((socket, con_clone));
-        tokio::spawn(launch_con(&socket, con));
+        self.connections.push((socket.clone(), con_clone));
+        tokio::spawn(launch_con(socket, con));
         println!("Pushing connection to the list...");
 
         //self.connections.retain(|c| c.open);
     }
-
 }

@@ -1,6 +1,7 @@
-use std::time::SystemTime;
+use std::{sync::Arc, time::SystemTime};
 
 use axum::{self, extract::ws::WebSocket};
+use tokio::sync::Mutex;
 
 pub struct Con {
     pub addr: std::net::SocketAddr, // The address of the client
@@ -145,15 +146,24 @@ impl Con {
         }
     } */
 
-    pub async fn send(self: &mut Self, socket: &WebSocket, code: u8, data: serde_json::Value) {
+    pub async fn send(
+        self: &mut Self,
+        socket: Arc<Mutex<WebSocket>>,
+        code: u8,
+        data: serde_json::Value,
+    ) {
         let json: serde_json::Value = serde_json::json!({
             "op": code as u8,
             "d": data
         });
 
-
         let message = axum::extract::ws::Message::Text(json.to_string());
-        socket.send(message).await.expect("ALARM ALARM");
+        socket
+            .lock()
+            .await
+            .send(message)
+            .await
+            .expect("ALARM ALARM");
     }
 }
 

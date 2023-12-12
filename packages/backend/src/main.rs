@@ -29,9 +29,12 @@ async fn ws_handler(
     println!("`{}` at {} connected.", user_agent, addr);
 
     // finalize the upgrade process by returning upgrade callback.
-    // we can customize the callback by sending additional info such as address.
-    ws.on_upgrade(move | socket| async move {
+    // we cacn customize the callback by sending additional info such as address.
+    ws.on_upgrade(move |socket| async move {
         println!("Client at `{}` start to handle connection.", addr);
+
+        let socket = Arc::new(Mutex::new(socket));
+
         gateway.lock().await.handle_connection(socket, addr).await;
     })
 }
@@ -83,7 +86,6 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
                     println!("Connection is poisoned, removing.");
                     //remove_idxs.push(i);
                 }
-                
             }
         }
 
@@ -121,7 +123,6 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
                     println!("Connection is poisoned, removing.");
                     //remove_idxs.push(i);
                 }
-                
             }
         }
     }

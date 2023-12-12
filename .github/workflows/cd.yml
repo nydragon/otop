@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - "main"
+    paths:
+      - packages/backend
 
 env:
   BIN_DIR: "target/release"

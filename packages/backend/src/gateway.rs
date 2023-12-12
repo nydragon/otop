@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::SystemTime, collections::HashMap};
 
 use crate::con::Con;
 
@@ -38,6 +38,7 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
         .await;
 
     println!("Starting client messages loop...");
+    let mut map: HashMap<u8, serde_json::Value> = HashMap::new();
     loop {
         if let Some(msg) = socket.lock().await.recv().await {
             if let Ok(msg) = msg {
@@ -66,14 +67,11 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
                     // Handle the Heartbeat event
                     op if op == GatewayEvent::Heartbeat as i64 => {
                         println!("Received a heartbeat from the client !");
-                        /* con.lock().await.last_heartbeat = SystemTime::now()
+                        con.lock().await.last_heartbeat = SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
                         .unwrap()
-                        .as_secs(); */
-                        //con.lock()
-                        //    .await
-                        //    .send(GatewayEvent::HeartbeatAck as u8, serde_json::json!({}))
-                        //    .await;
+                        .as_secs();
+                        map.insert(GatewayEvent::HeartbeatAck as u8, serde_json::json!({}));
                     }
                     _ => {
                         println!("Received an unknown/illegal message from the client !");
@@ -84,6 +82,12 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
                 return;
             }
         }
+
+        for (op, data) in &map {
+            con.lock().await.send(socket.clone(), *op, data.clone()).await;
+        }
+        map.clear();
+        
     }
 }
 

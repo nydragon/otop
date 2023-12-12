@@ -8,6 +8,7 @@ env:
 defaults:
   run:
     working-directory: packages/backend
+
 jobs:
   build:
     name: Build
@@ -48,13 +49,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Check formatting - rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+        run: cargo fmt --all -- --check
 
       - name: Check good practice - clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -Dwarnings
+        run: cargo clippy -- -Dwarnings

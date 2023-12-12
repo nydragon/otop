@@ -49,7 +49,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Check formatting - rustfmt
-        run: cargo fmt --all -- --check
+        run: cargo fmt --check
 
       - name: Check good practice - clippy
         run: cargo clippy -- -Dwarnings

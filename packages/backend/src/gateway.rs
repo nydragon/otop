@@ -71,9 +71,9 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
                     op if op == GatewayEvent::Heartbeat as i64 => {
                         println!("Received a heartbeat from the client !");
                         con.lock().await.last_heartbeat = SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .unwrap()
-                            .as_secs();
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_millis() as u64;
                         map.insert(GatewayEvent::HeartbeatAck as u8, serde_json::json!({}));
                     }
                     _ => {

@@ -143,14 +143,9 @@ impl Con {
         }
     } */
 
-    pub async fn send(
-        self: &mut Self,
-        socket: Arc<Mutex<WebSocket>>,
-        code: u8,
-        data: serde_json::Value,
-    ) {
+    pub async fn send(&mut self, socket: Arc<Mutex<WebSocket>>, code: u8, data: serde_json::Value) {
         let json: serde_json::Value = serde_json::json!({
-            "op": code as u8,
+            "op": code,
             "d": data
         });
 

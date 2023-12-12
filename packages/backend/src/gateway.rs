@@ -1,13 +1,15 @@
-use std::{sync::Arc, time::SystemTime, collections::HashMap};
+use std::{collections::HashMap, sync::Arc, time::SystemTime};
 
 use crate::con::Con;
 
 use axum::extract::ws::WebSocket;
 use tokio::sync::Mutex;
 
+pub type Connection = (Arc<Mutex<WebSocket>>, Arc<Mutex<Con>>);
+
 pub struct Gateway {
     //pub websockets: Vec<Arc<Mutex<Con>>>,
-    pub connections: Vec<(Arc<Mutex<WebSocket>>, Arc<Mutex<Con>>)>,
+    pub connections: Vec<Connection>,
     pub max_connections: u64,
 }
 
@@ -61,18 +63,17 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
                 }
 
                 let json: serde_json::Value = json.unwrap();
-                let code = json["op"].as_i64().unwrap();
+                let op = json["op"].as_i64().unwrap();
 
-                let op = code as i64;
                 println!("{}", con.lock().await.last_heartbeat);
                 match op {
                     // Handle the Heartbeat event
                     op if op == GatewayEvent::Heartbeat as i64 => {
                         println!("Received a heartbeat from the client !");
                         con.lock().await.last_heartbeat = SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs();
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap()
+                            .as_secs();
                         map.insert(GatewayEvent::HeartbeatAck as u8, serde_json::json!({}));
                     }
                     _ => {
@@ -88,7 +89,10 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
         }
 
         for (op, data) in &map {
-            con.lock().await.send(socket.clone(), *op, data.clone()).await;
+            con.lock()
+                .await
+                .send(socket.clone(), *op, data.clone())
+                .await;
         }
         map.clear();
     }
@@ -103,7 +107,7 @@ impl Gateway {
     }
 
     pub async fn handle_connection(
-        self: &mut Self,
+        &mut self,
         socket: Arc<Mutex<WebSocket>>,
         addr: std::net::SocketAddr,
     ) {

@@ -4,16 +4,14 @@ import { Bar } from "../../../utils/chartjs";
 import { getColor } from "../../../types/color";
 
 import "./style.scss";
+import { CPU } from "../../../types/cpu";
 
 /////////////////////////////////////////////////////////////////////////
 // Component
 /////////////////////////////////////////////////////////////////////////
 
 type Props = {
-  cpus: Array<{
-    id: number;
-    usage: number;
-  }>;
+  cpus: CPU[];
 };
 
 export default (params: Props) => {
@@ -25,8 +23,8 @@ export default (params: Props) => {
           datasets: [
             {
               label: "Usage",
-              data: params.cpus.map((cpu) => cpu.usage),
-              backgroundColor: params.cpus.map((cpu) => getColor(cpu.usage)),
+              data: params.cpus.map((cpu) => (cpu.used / cpu.total) * 100),
+              backgroundColor: params.cpus.map((cpu) => getColor((cpu.used / cpu.total) * 100)),
             },
           ],
         }}

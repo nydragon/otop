@@ -14,6 +14,7 @@ import { generateProcess } from "./utils/faker";
 import ProcessModal from "./components/atomes/ProcessModal";
 import { Process } from "./types";
 import useWebSocket from "./hooks/useWebSocket";
+import { CPU } from "./types/cpu";
 
 export default () => {
   const { sendMessage, lastMessage, reload, ready } = useWebSocket({
@@ -22,6 +23,7 @@ export default () => {
   const [lastUpdate, setLastUpdate] = useState(0.0); // 0
   const [lastHB, setLastHB] = useState(0); // 0
   const [usedMemory, setUsedMemory] = useState(0); // 0
+  const [cpususage, setCpusUsage] = useState<CPU[]>([]);
 
   const [processes, setProcesses] = useState<Process[]>(
     new Array(10).fill(0).map(() => generateProcess())
@@ -60,6 +62,15 @@ export default () => {
         const ratio = (memory?.active / memory?.total) * 100;
         setUsedMemory(ratio);
       }
+      const cpus = lastMessage.d?.cpus;
+      if (cpus) {
+        const cpusUsage: CPU[] = cpus.map((cpu: any) => ({
+          id: cpu?.processor,
+          used: cpu?.cpu_mhz,
+          total: cpu?.bogomips,
+        } as CPU));
+        setCpusUsage(cpusUsage);
+      }
     } else if (lastMessage.op === 11) {
       //console.log(lastMessage.d?.last_heartbeat);
       //console.log(Math.floor(Date.now()));
@@ -68,11 +79,11 @@ export default () => {
     }
   }, [lastMessage]);
 
-  const nbCpu = (faker.number.int() % 120) + 8;
+  /* const nbCpu = (faker.number.int() % 120) + 8;
   const cpusUsage = Array.from(Array(nbCpu).keys()).map((i) => ({
     id: i + 1,
     usage: faker.number.int() % 100,
-  }));
+  })); */
 
   if (!ready) return <div>Connecting...</div>;
 
@@ -92,7 +103,7 @@ export default () => {
       <main>
         <div className="gl-container">
           <MetersRadar />
-          <CpuChart cpus={cpusUsage} />
+          <CpuChart cpus={cpususage} />
           <div className="meters-pie">
             {new Array("Memory", "CPU", "Swap", "Network").map(
               (label, index) => (

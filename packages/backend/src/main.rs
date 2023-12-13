@@ -57,10 +57,15 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
         for (i, con) in gateway.lock().await.connections.iter().enumerate() {
             match con.1.try_lock() {
                 Ok(mut c) => {
+                    if c.open == false {
+                        println!("Connection is closed, removing.");
+                        remove_idxs.push(i);
+                        continue;
+                    }
+                    
                     println!(
-                        "Checking heartbeat for client at {}, last heartbeat {} was {}s ago",
+                        "Checking heartbeat for client at ({}), last heartbeat was {}s ago",
                         c.addr,
-                        c.last_heartbeat,
                         ((current_time - c.last_heartbeat) / 1000) as f32
                     );
                     let diff = current_time - c.last_heartbeat;

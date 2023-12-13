@@ -56,8 +56,9 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
                 let msg = msg.to_text().unwrap();
 
                 if msg.is_empty() {
-                    println!("Received an empty message from the client !");
-                    return;
+                    con.lock().await.open = false;
+                    println!("Connection is closed, aborting.");
+                    break;
                 }
 
                 println!("Received a message from the client: {:?}", msg);
@@ -126,7 +127,7 @@ impl Gateway {
         }
 
         if self.connections.len() >= self.max_connections as usize {
-            println!("Connection already exists, aborting.");
+            println!("Maximum number of connections reached, aborting.");
             return;
         }
 

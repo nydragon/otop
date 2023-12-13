@@ -141,7 +141,7 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
 
 #[tokio::main]
 async fn main() {
-    let gateway = Arc::new(Mutex::new(Gateway::new(100)));
+    let gateway = Arc::new(Mutex::new(Gateway::new(1)));
     //let mut gateway_clone = gateway.clone();
 
     tokio::spawn(run(gateway.clone()));

@@ -19,6 +19,8 @@ export default () => {
   const { sendMessage, lastMessage, reload, ready } = useWebSocket({
     url: "ws://localhost:3000/ws",
   });
+  const [lastUpdate, setLastUpdate] = useState(0.0); // 0
+  const [lastHB, setLastHB] = useState(0); // 0
   const [usedMemory, setUsedMemory] = useState(0); // 0
 
   const [processes, setProcesses] = useState<Process[]>(
@@ -27,6 +29,7 @@ export default () => {
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
 
   useEffect(() => {
+    //ready ? sendMessage({ op: 1 }) : reload();
     let interval = setInterval(() => {
       ready ? sendMessage({ op: 1 }) : reload();
     }, 5000);
@@ -37,14 +40,31 @@ export default () => {
   }, [ready]);
 
   useEffect(() => {
+    let interval = setInterval(() => {
+      console.log("lastHB", lastHB);
+      console.log("Date.now()", Math.floor(Date.now()) - lastHB);
+      setLastUpdate(lastHB > 0 ? (Math.floor(Date.now()) - lastHB) / 1000.0 : 0);
+    }, 500);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [lastHB]);
+
+  useEffect(() => {
     if (!lastMessage) return;
     console.log(lastMessage);
     if (lastMessage.op === 2) {
-      let memory = lastMessage.d?.memory;
+      const memory = lastMessage.d?.memory;
       if (memory) {
-        let ratio = (memory?.active / memory?.total) * 100;
+        const ratio = (memory?.active / memory?.total) * 100;
         setUsedMemory(ratio);
       }
+    } else if (lastMessage.op === 11) {
+      //console.log(lastMessage.d?.last_heartbeat);
+      //console.log(Math.floor(Date.now()));
+      const lastHB = lastMessage.d?.last_heartbeat;
+      if (lastHB) setLastHB(lastHB);
     }
   }, [lastMessage]);
 
@@ -67,7 +87,7 @@ export default () => {
       <header>
         <img src="/logo.png" alt="logo" width={75} height={75} />
         <h1>Otop - Dashboard</h1>
-        <h2>Last update 2min ago</h2>
+        <h2>Last update {lastUpdate}s ago</h2>
       </header>
       <main>
         <div className="gl-container">

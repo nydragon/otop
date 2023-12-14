@@ -1,5 +1,5 @@
-export type CPU = {
-    id: number;
+export type Graph = {
+    id?: number;
     used: number;
     total: number;
 };

@@ -8,6 +8,7 @@ use axum::{extract::ws::WebSocketUpgrade, routing::get, Router};
 use axum_extra::TypedHeader;
 use gateway::GATEWAY_DATA_INTERVAL;
 use headers::{self};
+use process::data::Data;
 use process::parser::Parser;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -118,10 +119,7 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
                         c.send(
                             socket.clone(),
                             GatewayEvent::Data as u8,
-                            serde_json::json!({
-                                "cpus": process::modules::cpu::CPUs::parse().unwrap(),
-                                "memory": process::modules::memory::Memory::parse().unwrap()
-                            }),
+                            serde_json::json!(Data::new()),
                         )
                         .await;
 

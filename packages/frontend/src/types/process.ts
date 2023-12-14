@@ -1,14 +1,12 @@
 export type Process = {
-    name: string;
-    pid: number;
-    user: string;
-    priority: number;
-    nice: number;
-    virt: number;
-    resident: number;
-    share: number;
+    pid: number; // attr: pid
+    user: string; // attr: user
+    priority: number; // attr: priority
+    nice: number; // attr: nice
+    virt: number; // attr: vsize
+    resident: number; // attr: rss
     cpu: number;
     mem: number;
-    time: number;
-    command: string;
+    time: number; // attr: starttime
+    command: string; // attr: command
 };

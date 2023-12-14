@@ -4,14 +4,14 @@ import { Bar } from "../../../utils/chartjs";
 import { getColor } from "../../../types/color";
 
 import "./style.scss";
-import { CPU } from "../../../types/cpu";
+import { Graph } from "../../../types/graph";
 
 /////////////////////////////////////////////////////////////////////////
 // Component
 /////////////////////////////////////////////////////////////////////////
 
 type Props = {
-  cpus: CPU[];
+  cpus: Graph[];
 };
 
 export default (params: Props) => {

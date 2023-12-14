@@ -49,7 +49,7 @@ export default ({ processes, OpenProcess }: Props) => {
             </div>
           ),
         }))}
-        rows={processes}
+        rows={processes.sort((a, b) => b.cpu - a.cpu)}
         defaultColumnOptions={{
           sortable: true,
           resizable: true,

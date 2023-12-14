@@ -2,7 +2,6 @@ import "react";
 
 import "./App.scss";
 
-import { faker } from "@faker-js/faker";
 import { useEffect, useState } from "react";
 
 import MeterPie from "./components/atomes/MeterPie";
@@ -14,7 +13,8 @@ import { generateProcess } from "./utils/faker";
 import ProcessModal from "./components/atomes/ProcessModal";
 import { Process } from "./types";
 import useWebSocket from "./hooks/useWebSocket";
-import { CPU } from "./types/cpu";
+import { Graph } from "./types/graph";
+import { extractData } from "./utils/otop";
 
 export default () => {
   const { sendMessage, lastMessage, reload, ready } = useWebSocket({
@@ -23,7 +23,7 @@ export default () => {
   const [lastUpdate, setLastUpdate] = useState(0.0); // 0
   const [lastHB, setLastHB] = useState(0); // 0
   const [usedMemory, setUsedMemory] = useState(0); // 0
-  const [cpususage, setCpusUsage] = useState<CPU[]>([]);
+  const [cpususage, setCpusUsage] = useState<Graph[]>([]);
 
   const [processes, setProcesses] = useState<Process[]>(
     new Array(10).fill(0).map(() => generateProcess())
@@ -43,8 +43,8 @@ export default () => {
 
   useEffect(() => {
     let interval = setInterval(() => {
-      console.log("lastHB", lastHB);
-      console.log("Date.now()", Math.floor(Date.now()) - lastHB);
+      //console.log("lastHB", lastHB);
+      //console.log("Date.now()", Math.floor(Date.now()) - lastHB);
       setLastUpdate(lastHB > 0 ? (Math.floor(Date.now()) - lastHB) / 1000.0 : 0);
     }, 500);
 
@@ -55,25 +55,15 @@ export default () => {
 
   useEffect(() => {
     if (!lastMessage) return;
-    console.log(lastMessage);
+    //console.log(lastMessage);
     if (lastMessage.op === 2) {
-      const memory = lastMessage.d?.memory;
-      if (memory) {
-        const ratio = (memory?.active / memory?.total) * 100;
-        setUsedMemory(ratio);
-      }
-      const cpus = lastMessage.d?.cpus;
-      if (cpus) {
-        const cpusUsage: CPU[] = cpus.map((cpu: any) => ({
-          id: cpu?.processor,
-          used: cpu?.cpu_mhz,
-          total: cpu?.bogomips,
-        } as CPU));
-        setCpusUsage(cpusUsage);
-      }
+      const data = extractData(lastMessage?.d);
+      if (!data) return;
+      console.log(data);
+      setUsedMemory((data.memory.used / data.memory.total) * 100);
+      setCpusUsage(data.cpus);
+      setProcesses(data.processes);
     } else if (lastMessage.op === 11) {
-      //console.log(lastMessage.d?.last_heartbeat);
-      //console.log(Math.floor(Date.now()));
       const lastHB = lastMessage.d?.last_heartbeat;
       if (lastHB) setLastHB(lastHB);
     }

@@ -9,7 +9,6 @@ use axum_extra::TypedHeader;
 use gateway::GATEWAY_DATA_INTERVAL;
 use headers::{self};
 use process::data::Data;
-use process::parser::Parser;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -58,12 +57,12 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
         for (i, con) in gateway.lock().await.connections.iter().enumerate() {
             match con.1.try_lock() {
                 Ok(mut c) => {
-                    if c.open == false {
+                    if !c.open {
                         println!("Connection is closed, removing.");
                         remove_idxs.push(i);
                         continue;
                     }
-                    
+
                     println!(
                         "Checking heartbeat for client at ({}), last heartbeat was {}s ago",
                         c.addr,

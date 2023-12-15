@@ -116,8 +116,11 @@ cp packages/frontend/dist -r /www; # Or any other directory
 Then to launch the software execute the following commands:
 
 ```sh
-otop & miniserve --index /www/index.html # replace `www` by the path in which reside your build frontend files.
+otop 2> /dev/null &;
+miniserve /www --index index.html; # replace `www` by the path in which reside your build frontend files.
 ```
+
+Feel free to substitue miniserve by any other http server.
 
 ## Roadmap
 

@@ -5,25 +5,37 @@ on:
     branches:
       - "main"
 
-env:
-  BIN_DIR: "target/release"
-  BIN: otop
-
 jobs:
   arm-32-release:
     runs-on: ubuntu-latest
     env:
+      BIN: otop
       TARGET: arm-unknown-linux-gnueabihf
+      FRONT_DIR: "packages/frontend"
+      BACK_DIR: "packages/backend"
     steps:
       - name: Setting up environment
         run: |
           cargo install cross
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 16.17
       - uses: actions/checkout@v3
         with:
           submodules: recursive
-      - name: Build All Binaries
+      - name: Build Backend
         run: |
-          cross build --target $TARGET --release --verbose
+          cross build --manifest-path $BACK_DIR/Cargo.toml --target $TARGET --release --verbose
+      - name: Build Frontend
+        run: |
+          npm install --prefix $FRONT_DIR;
+          npm run build --prefix $FRONT_DIR;
+      - name: Creating Zip
+        run: |
+          mkdir otop/bin -p;
+          mv $BACK_DIR/target/$TARGET/release/$BIN otop/bin/;
+          mv $FRONT_DIR/dist otop/www;
+          zip otop.zip otop -R;
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.TOKEN }}"
@@ -31,16 +43,33 @@ jobs:
           prerelease: true
           title: "ARM 32 Bit release"
           files: |
-            ./target/${{ env.TARGET }}/release/${{ env.BIN }}
-
+            otop.zip
   x86-64-release:
     runs-on: ubuntu-latest
+    env:
+      BIN: otop
+      BIN_DIR: "target/release"
+      FRONT_DIR: "packages/frontend"
+      BACK_DIR: "packages/backend"
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
-      - name: Build All Binaries
-        run: cargo build --release --verbose
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 16.17
+      - name: Build Backend
+        run: cargo build --manifest-path packages/backend/Cargo.toml --release --verbose
+      - name: Build Frontend
+        run: |
+          npm install --prefix $FRONT_DIR;
+          npm run build --prefix $FRONT_DIR;
+      - name: Creating Zip
+        run: |
+          mkdir otop/bin -p;
+          mv $BACK_DIR/target/release/$BIN otop/bin/;
+          mv $FRONT_DIR/dist otop/www;
+          zip otop.zip otop -R;
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.TOKEN }}"
@@ -48,4 +77,4 @@ jobs:
           prerelease: true
           title: "x86 64 Bit release"
           files: |
-            ${{ env.BIN_DIR }}/${{ env.BIN }}
+            otop.zip

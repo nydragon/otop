@@ -168,7 +168,7 @@ impl Gateway {
 }
 
 /// Send an interrupt signal to a specified process.
-pub fn kill_process(pid: i32, sig: i32) {
+fn kill_process(pid: i32, sig: i32) {
     unsafe {
         libc::kill(pid, sig);
     };

@@ -1,0 +1,9 @@
+.container-pie {
+    background: #424549;
+    padding: 18px;
+    border-radius: 2em;
+
+    > canvas {
+        cursor: pointer;
+    }
+}

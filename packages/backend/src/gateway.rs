@@ -121,7 +121,7 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
                             println!("Data has an incorrect structure");
                         }
                     }
-                    GatewayEvent::Unknown | _ => {
+                    _ => {
                         println!("Received an unknown/illegal message from the client !");
                     }
                 };

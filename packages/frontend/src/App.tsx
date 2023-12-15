@@ -33,7 +33,7 @@ export default () => {
 
   useEffect(() => {
     //ready ? sendMessage({ op: 1 }) : reload();
-    let interval = setInterval(() => {
+    const interval = setInterval(() => {
       ready ? sendMessage({ op: 1 }) : reload();
     }, 2000);
 
@@ -43,7 +43,7 @@ export default () => {
   }, [ready]);
 
   useEffect(() => {
-    let interval = setInterval(() => {
+    const interval = setInterval(() => {
       setLastHBUpdate(
         lastHB > 0 ? (Math.floor(Date.now()) - lastHB) / 1000.0 : 0
       );

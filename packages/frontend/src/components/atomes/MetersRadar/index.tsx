@@ -1,7 +1,4 @@
 import "./style.scss";
-
-import { faker } from "@faker-js/faker";
-
 import { Graph } from "../../../types/graph";
 import { Radar } from "../../../utils/chartjs";
 

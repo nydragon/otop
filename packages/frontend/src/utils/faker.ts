@@ -13,7 +13,8 @@ export const generateProcess = (): Process => {
     resident: faker.number.int(),
     cpu: faker.number.int() % 100,
     mem: faker.number.int() % 100,
-    time: faker.date.recent().getTime(),
+    time: faker.date.month(),
+    state: faker.lorem.word(),
     command: faker.lorem.word(),
   };
 };

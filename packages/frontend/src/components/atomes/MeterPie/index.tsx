@@ -67,7 +67,7 @@ export default (params: Props) => {
               position: "bottom",
               align: "center",
               labels: {
-                filter: (item: any, chart: any) => {
+                filter: (item: any, _chart: any) => {
                   return !item.text.includes("Not used");
                 },
                 color: "white",

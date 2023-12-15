@@ -28,7 +28,7 @@ export const extractData = (data: {
         total: 0,
     }));
 
-    let fprocesses: Process[] = [];
+    const fprocesses: Process[] = [];
 
     for (const process of processes) {
         const { pid, user_name: user, state, priority, nice, vsize, rss, starttime, utime, stime, command } = process;
@@ -62,7 +62,7 @@ export const extractData = (data: {
         });
     }
 
-    let n_sec = Object.entries(network.devices).reduce((acc, [_, value] : [string, any]) : any => {
+    const n_sec = Object.entries(network.devices).reduce((acc, [_, value] : [string, any]) : any => {
         return [value.total_tx + acc[0], value.total_rx + acc[1]];
     }, [0, 0]);
 

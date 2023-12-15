@@ -15,9 +15,12 @@ import { extractData } from "./utils/otop";
 import Waiting from "./components/molecules/Waiting";
 
 export default () => {
+  console.log(location.hostname);
   const { sendMessage, lastMessage, reload, ready } = useWebSocket({
-    url: "ws://localhost:3000/ws",
+    url: `ws://${location.hostname}:3000/ws`,
   });
+
+
   const [lastHBUpdate, setLastHBUpdate] = useState(0.0); // 0
   const [lastHB, setLastHB] = useState(0); // 0
 

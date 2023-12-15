@@ -7,7 +7,7 @@ pub type Connection = (Arc<Mutex<WebSocket>>, Arc<Mutex<Con>>);
 
 pub struct Gateway {
     pub connections: Vec<Connection>,
-    pub max_connections: u64,
+    pub max_connections: usize,
 }
 
 pub enum GatewayEvent {
@@ -55,9 +55,10 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
         )
         .await;
 
+    let addr = con.lock().await.addr;
+
     loop {
-        let con_open = con.lock().await.open;
-        if !con_open {
+        if !con.lock().await.open {
             log::info!("Connection is closed, aborting.");
             break;
         }
@@ -79,7 +80,8 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
                     break;
                 }
 
-                log::info!("Received a message from the client: {:?}", msg);
+                log::debug!("Received a message from {addr}: {:#?}", msg);
+
                 let json = serde_json::from_str(msg);
 
                 if json.is_err() {
@@ -94,7 +96,7 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
                 match GatewayEvent::from(op) {
                     // Handle the Heartbeat event
                     GatewayEvent::Heartbeat => {
-                        log::info!("Received a heartbeat from the client !");
+                        log::debug!("Received a heartbeat from the client !");
                         let t = SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .unwrap()
@@ -127,11 +129,11 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
             }
         }
     }
-    log::info!("Client at {} has disconnected.", con.lock().await.addr);
+    log::info!("Client at {addr} has disconnected.");
 }
 
 impl Gateway {
-    pub fn new(max_connections: u64) -> Self {
+    pub fn new(max_connections: usize) -> Self {
         Self {
             connections: Vec::new(),
             max_connections,
@@ -152,7 +154,7 @@ impl Gateway {
             }
         }
 
-        if self.connections.len() >= self.max_connections as usize {
+        if self.connections.len() >= self.max_connections {
             log::warn!("Maximum number of connections reached, aborting.");
             return;
         }
@@ -164,6 +166,16 @@ impl Gateway {
         self.connections.push((socket.clone(), con_clone));
         tokio::spawn(launch_con(socket, con));
         log::info!("Pushing connection to the list...");
+
+        self.log_con_n();
+    }
+
+    pub fn log_con_n(&self) {
+        let con_n = self.connections.len();
+        log::info!(
+            "Gateway has {con_n} connection{}.",
+            if con_n == 1 { "" } else { "s" }
+        );
     }
 }
 

@@ -42,8 +42,10 @@ export const extractData = (data: {
         const usage_s = utime_s + stime_s;
         const cpu = misc ? (usage_s * 100) / elapsed_s : 0;
 
-        const date_time = new Date(0);
-        date_time.setSeconds(starttime);
+        const hours = Math.floor(usage_s / 3600);
+        const minutes = Math.floor((usage_s - (hours * 3600)) / 60);
+        const seconds = Math.floor(usage_s - (hours * 3600) - (minutes * 60));
+        const milliseconds = Math.floor((usage_s - (hours * 3600) - (minutes * 60) - seconds) * 1000);
 
         fprocesses.push({
             pid,
@@ -55,7 +57,7 @@ export const extractData = (data: {
             resident: rss,
             cpu,
             mem: (rss * 100) / memtotal,
-            time: date_time.getHours() + ":" + date_time.getMinutes() + ":" + date_time.getSeconds(),
+            time: hours > 0 ? hours + "H" + minutes + ":" + seconds + "." + milliseconds : minutes + ":" + seconds + "." + milliseconds,
             command,
         });
     }

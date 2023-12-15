@@ -105,7 +105,7 @@ npm run dev --prefix packages/frontend;
 If you wish to install the program permanently, you can follow these steps:
 
 ```sh
-cargo build --manifest-path packages/backend/Cargo.tom --release;
+cargo build --manifest-path packages/backend/Cargo.toml --release;
 chmod +x packages/backend/target/release/otop;
 cp packages/backend/target/release/otop /bin; # Or any other directory in $PATH
 

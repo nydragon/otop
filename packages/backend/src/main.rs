@@ -50,7 +50,7 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
             .as_millis();
         // ===== Heartbeat =====
         let mut remove_idxs: Vec<usize> = Vec::new();
-        log::info!(
+        log::debug!(
             "Gateway has {} connections.",
             gateway.lock().await.connections.len()
         );
@@ -64,7 +64,7 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
                         continue;
                     }
 
-                    log::info!(
+                    log::debug!(
                         "Checking heartbeat for client at ({}), last heartbeat was {}s ago",
                         c.addr,
                         ((current_time - c.last_heartbeat) / 1000) as f32
@@ -82,7 +82,7 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
                             c.last_heartbeat = current_time;
                         }
                         // Send heartbeat
-                        log::info!("Waiting heartbeat from client at {}....", c.addr);
+                        log::debug!("Waiting heartbeat from client at {}....", c.addr);
                     }
                 }
                 Err(_) => {
@@ -91,6 +91,8 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
                 }
             }
         }
+
+        let r_len = remove_idxs.len();
 
         for i in remove_idxs {
             gateway
@@ -106,15 +108,19 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
             gateway.lock().await.connections.remove(i);
         }
 
+        if r_len != 0 {
+            gateway.lock().await.log_con_n();
+        }
+
         // ===== Data =====
-        log::info!("Preparing to send data...");
+        log::debug!("Preparing to send data...");
         for (socket, con) in &gateway.lock().await.connections {
             match con.try_lock() {
                 Ok(mut c) => {
                     let diff = current_time - c.last_time_data_sent;
                     if diff > GATEWAY_DATA_INTERVAL {
                         // Send data to client
-                        log::info!("Client at {} will receive data.", c.addr);
+                        log::debug!("Client at {} will receive data.", c.addr);
 
                         c.send(
                             socket.clone(),
@@ -126,7 +132,7 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
                         c.last_time_data_sent = current_time;
                     } else {
                         // Don't send data to client
-                        log::info!("Client at {} will not receive data.", c.addr);
+                        log::debug!("Client at {} will not receive data.", c.addr);
                     }
                 }
                 Err(_) => {
@@ -163,7 +169,7 @@ async fn main() {
     log::debug!("Debug mode activated");
     log::debug!("{:#?}", args);
 
-    let gateway = Arc::new(Mutex::new(Gateway::new(1)));
+    let gateway = Arc::new(Mutex::new(Gateway::new(5)));
     //let mut gateway_clone = gateway.clone();
 
     tokio::spawn(run(gateway.clone()));

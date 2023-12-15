@@ -120,7 +120,7 @@ otop 2> /dev/null &;
 miniserve /www --index index.html; # replace `www` by the path in which reside your build frontend files.
 ```
 
-Feel free to substitue miniserve by any other http server.
+Feel free to substitue miniserve by any other http server. And then finally connect to the public address of the hosting device at the port :8080;
 
 ## Roadmap
 

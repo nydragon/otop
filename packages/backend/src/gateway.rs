@@ -21,8 +21,8 @@ pub enum GatewayEvent {
 }
 
 pub const GATEWAY_VERSION: u8 = 6;
-pub const GATEWAY_HEARTBEAT_INTERVAL: u64 = 12 * 1000; // 12 seconds
-pub const GATEWAY_DATA_INTERVAL: u64 = 5 * 1000; // 5 seconds
+pub const GATEWAY_HEARTBEAT_INTERVAL: u128 = 12 * 1000; // 12 seconds
+pub const GATEWAY_DATA_INTERVAL: u128 = 1 * 1000; // 1 seconds
 
 async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
     con.lock()
@@ -80,8 +80,7 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
                         let t = SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
                         .unwrap()
-                        .as_millis()
-                        as u64;
+                        .as_millis();
                         con.lock().await.last_heartbeat = t;
                         con.lock()
                             .await

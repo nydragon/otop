@@ -47,7 +47,7 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_millis() as u64;
+            .as_millis();
         // ===== Heartbeat =====
         let mut remove_idxs: Vec<usize> = Vec::new();
         println!(

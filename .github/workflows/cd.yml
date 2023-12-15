@@ -35,7 +35,7 @@ jobs:
           mkdir otop/bin -p;
           mv $BACK_DIR/target/$TARGET/release/$BIN otop/bin/;
           mv $FRONT_DIR/dist otop/www;
-          zip otop.zip otop -R;
+          zip otop.zip otop -r;
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.TOKEN }}"
@@ -69,7 +69,7 @@ jobs:
           mkdir otop/bin -p;
           mv $BACK_DIR/target/release/$BIN otop/bin/;
           mv $FRONT_DIR/dist otop/www;
-          zip otop.zip otop -R;
+          zip otop.zip otop -r;
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.TOKEN }}"

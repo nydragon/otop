@@ -25,5 +25,7 @@ once_cell = "*"
 # clap = { version = "4.*", features = ["derive"] }
 process = { path = "./lib/process" }
 libc = "*"
+colog = "*"
+log = "*"
 
 [target.arm-unknown-linux-gnueabihf.dependencies]

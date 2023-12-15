@@ -138,6 +138,12 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
 
 #[tokio::main]
 async fn main() {
+    let mut builder = colog::builder();
+
+    builder.init();
+
+    log::info!("Debug mode activated");
+
     let gateway = Arc::new(Mutex::new(Gateway::new(1)));
     //let mut gateway_clone = gateway.clone();
 

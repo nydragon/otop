@@ -1,11 +1,14 @@
 mod con;
 mod gateway;
 
+use crate::gateway::{Gateway, GatewayEvent, GATEWAY_HEARTBEAT_INTERVAL};
+use ::log as ext_log;
 use axum::extract::connect_info::ConnectInfo;
 use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::{extract::ws::WebSocketUpgrade, routing::get, Router};
 use axum_extra::TypedHeader;
+use clap::Parser;
 use gateway::GATEWAY_DATA_INTERVAL;
 use headers::{self};
 use process::data::Data;
@@ -13,8 +16,6 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
-
-use crate::gateway::{Gateway, GatewayEvent, GATEWAY_HEARTBEAT_INTERVAL};
 
 async fn ws_handler(
     State(gateway): State<Arc<Mutex<Gateway>>>,
@@ -27,12 +28,12 @@ async fn ws_handler(
     } else {
         String::from("UB")
     };
-    println!("`{}` at {} connected.", user_agent, addr);
+    log::info!("`{}` at {} connected.", user_agent, addr);
 
     // finalize the upgrade process by returning upgrade callback.
     // we cacn customize the callback by sending additional info such as address.
     ws.on_upgrade(move |socket| async move {
-        println!("Client at `{}` start to handle connection.", addr);
+        log::info!("Client at `{}` start to handle connection.", addr);
 
         let socket = Arc::new(Mutex::new(socket));
 
@@ -49,21 +50,21 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
             .as_millis();
         // ===== Heartbeat =====
         let mut remove_idxs: Vec<usize> = Vec::new();
-        println!(
+        log::info!(
             "Gateway has {} connections.",
             gateway.lock().await.connections.len()
         );
-        println!("Current Time: {}", current_time);
+        log::debug!("Current Time: {}", current_time);
         for (i, con) in gateway.lock().await.connections.iter().enumerate() {
             match con.1.try_lock() {
                 Ok(mut c) => {
                     if !c.open {
-                        println!("Connection is closed, removing.");
+                        log::info!("Connection is closed, removing.");
                         remove_idxs.push(i);
                         continue;
                     }
 
-                    println!(
+                    log::info!(
                         "Checking heartbeat for client at ({}), last heartbeat was {}s ago",
                         c.addr,
                         ((current_time - c.last_heartbeat) / 1000) as f32
@@ -71,7 +72,7 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
                     let diff = current_time - c.last_heartbeat;
                     if c.last_heartbeat > 0 && diff > GATEWAY_HEARTBEAT_INTERVAL {
                         // Remove the connection
-                        println!(
+                        log::warn!(
                             "Client at {} has not responded to heartbeat, removing.",
                             c.addr
                         );
@@ -81,11 +82,11 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
                             c.last_heartbeat = current_time;
                         }
                         // Send heartbeat
-                        println!("Waiting heartbeat from client at {}....", c.addr);
+                        log::info!("Waiting heartbeat from client at {}....", c.addr);
                     }
                 }
                 Err(_) => {
-                    println!("Connection is poisoned, removing.");
+                    log::warn!("Connection is poisoned, removing.");
                     remove_idxs.push(i);
                 }
             }
@@ -106,14 +107,14 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
         }
 
         // ===== Data =====
-        println!("Preparing to send data...");
+        log::info!("Preparing to send data...");
         for (socket, con) in &gateway.lock().await.connections {
             match con.try_lock() {
                 Ok(mut c) => {
                     let diff = current_time - c.last_time_data_sent;
                     if diff > GATEWAY_DATA_INTERVAL {
                         // Send data to client
-                        println!("Client at {} will receive data.", c.addr);
+                        log::info!("Client at {} will receive data.", c.addr);
 
                         c.send(
                             socket.clone(),
@@ -125,24 +126,42 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
                         c.last_time_data_sent = current_time;
                     } else {
                         // Don't send data to client
-                        println!("Client at {} will not receive data.", c.addr);
+                        log::info!("Client at {} will not receive data.", c.addr);
                     }
                 }
                 Err(_) => {
-                    println!("Connection is poisoned.");
+                    log::error!("Connection is poisoned.");
                 }
             }
         }
     }
 }
 
+#[derive(Parser, Debug)]
+struct Args {
+    #[clap(
+        long,
+        short,
+        help = "Enable a more detailed level of logs.",
+        default_value_t = false
+    )]
+    pub verbose: bool,
+}
+
 #[tokio::main]
 async fn main() {
+    let args = Args::parse();
+
     let mut builder = colog::builder();
+
+    if args.verbose {
+        builder.filter_level(ext_log::LevelFilter::Debug);
+    }
 
     builder.init();
 
-    log::info!("Debug mode activated");
+    log::debug!("Debug mode activated");
+    log::debug!("{:#?}", args);
 
     let gateway = Arc::new(Mutex::new(Gateway::new(1)));
     //let mut gateway_clone = gateway.clone();
@@ -160,7 +179,7 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind(&"0.0.0.0:3000")
         .await
         .unwrap();
-    println!("Listening on {}", listener.local_addr().unwrap());
+    log::info!("Listening on {}", listener.local_addr().unwrap());
 
     axum::serve(
         listener,

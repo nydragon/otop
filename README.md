@@ -16,7 +16,7 @@
   </p>
 </p>
 
-![Downloads](https://img.shields.io/github/downloads/nydragon/otop/total) ![Contributors](https://img.shields.io/github/contributors/nydragon/otop?color=dark-green) ![Issues](https://img.shields.io/github/issues/nydragon/otop) ![License](https://img.shields.io/github/license/nydragon/otop) 
+![Downloads](https://img.shields.io/github/downloads/nydragon/otop/total) ![Contributors](https://img.shields.io/github/contributors/nydragon/otop?color=dark-green) ![Issues](https://img.shields.io/github/issues/nydragon/otop) ![License](https://img.shields.io/github/license/nydragon/otop)
 
 ## Table Of Contents
 
@@ -25,8 +25,11 @@
 - [Built With](#built-with)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
+    - [Frontend](#frontend)
+    - [Backend](#backend)
+    - [Frontend](#frontend-1)
 - [Usage](#usage)
+  - [Permament Installation](#permament-installation)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
   - [Creating A Pull Request](#creating-a-pull-request)
@@ -54,44 +57,67 @@ The best tools was used for this project
 
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
-
 ### Prerequisites
 
-This is an example of how to list things you need to use the software and how to install them.
+As dependencies you will have to install the following software:
 
-* npm
+#### Frontend
+
+- npm
+- NodeJS
+
+To easily manage your Node version it is recommended to use [`nvm`](https://github.com/nvm-sh/nvm) or any other kind of Node version manager. Please refer to the [.nvmrc](packages/frontend/.nvmrc)  file to know which Node version to download.
+
+#### Backend
+
+- Rust toolchain
+
+You may find it on their [website](https://rustup.rs/).
+
+#### Frontend
+
+1. Clone the repo
 
 ```sh
-npm install npm@latest -g
+git clone https://github.com/Nydragon/otop.git
 ```
 
-### Installation
-
-1. Get a free API Key at [https://example.com](https://example.com)
-
-2. Clone the repo
+2. Install NPM packages
 
 ```sh
-git clone https://github.com/your_username_/Project-Name.git
-```
-
-3. Install NPM packages
-
-```sh
-npm install
-```
-
-4. Enter your API in `config.js`
-
-```JS
-const API_KEY = 'ENTER YOUR API';
+npm install --prefix packages/frontend;
 ```
 
 ## Usage
 
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
+To start the program on your local machine, you will need to start the backend, using the following command:
+```sh
+cargo run --manifest-path packages/backend;
+```
+
+And the frontend with the following:
+```sh
+npm run dev --prefix packages/frontend;
+```
+
+### Permament Installation
+
+If you wish to install the program permanently, you can follow these steps:
+
+```sh
+cargo build --manifest-path packages/backend --release;
+chmod +x packages/backend/target/release/otop;
+cp packages/backend/target/release/otop /bin; # Or any other directory in $PATH
+
+npm run build --prefix packages/frontend;
+cp packages/frontend/dist /www; # Or any other directory
+```
+
+Then to launch the software execute the following commands:
+
+```sh
+otop & miniserve --index /www/index.html # replace `www` by the path in which reside your build frontend files.
+```
 
 ## Roadmap
 

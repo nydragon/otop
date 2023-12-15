@@ -13,7 +13,7 @@ export const extractData = (data: {
 } | null => {
     if (!data) return null;
     const { memory, cpu, processes, misc, network, timestamp } = data;
-    if (!memory || !cpu || !processes) {
+    if (!memory || !cpu || !processes || !network) {
         return null;
     }
 

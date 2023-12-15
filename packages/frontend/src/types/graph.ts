@@ -1,5 +1,6 @@
 export type Graph = {
-    id?: number;
+    id: number | string;
     used: number;
     total: number;
+    color?: string;
 };

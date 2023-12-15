@@ -25,11 +25,16 @@ main {
     background: #1e2124;
 
     > .meters-pie {
+      list-style: none;
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       grid-template-rows: repeat(2, 1fr);
       gap: 20px;
     }
+  }
+
+  .proc-container {
+    width: 100%;
   }
 }
 

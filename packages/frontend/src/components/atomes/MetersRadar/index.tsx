@@ -2,17 +2,22 @@ import "./style.scss";
 
 import { faker } from "@faker-js/faker";
 
+import { Graph } from "../../../types/graph";
 import { Radar } from "../../../utils/chartjs";
 
-export default () => {
+export default ({
+  graphs,
+}: {
+  graphs: Graph[];
+}) => {
   return (
     <div className="container-radar">
       <Radar
         data={{
-          labels: ["Memory", "CPU", "Swap", "Disk", "Network"],
+          labels: graphs.map((graph) => `${graph.id}`),
           datasets: [
             {
-              data: new Array(5).fill(0).map(() => faker.number.int() % 100),
+              data: graphs.map((graph) => (graph.used / graph.total) * 100),
               backgroundColor: "rgba(255, 99, 132, 0.2)",
               borderColor: "rgba(255, 99, 132, 1)",
               borderWidth: 1,
@@ -37,7 +42,7 @@ export default () => {
               mode: "nearest",
               callbacks: {
                 label: (context: any) => {
-                  return " " + context.raw + "%";
+                  return " " + context.raw.toFixed(2) + "%";
                 },
               },
             },

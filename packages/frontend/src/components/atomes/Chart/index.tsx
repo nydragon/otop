@@ -1,7 +1,7 @@
 import "react";
 
 import { Bar } from "../../../utils/chartjs";
-import { getColor } from "../../../types/color";
+import { getColor } from "../../../utils/color";
 
 import "./style.scss";
 import { Graph } from "../../../types/graph";
@@ -11,20 +11,22 @@ import { Graph } from "../../../types/graph";
 /////////////////////////////////////////////////////////////////////////
 
 type Props = {
-  cpus: Graph[];
+  graphs: Graph[];
+  suffix?: string;
+  width?: string;
 };
 
 export default (params: Props) => {
   return (
-    <div className="container-bar">
+    <div className="container-bar" style={{ width: params.width || "800px" }}>
       <Bar
         data={{
-          labels: params.cpus.map((cpu) => `CPU ${cpu.id}`),
+          labels: params.graphs.map((graph) => `${graph.id}`),
           datasets: [
             {
               label: "Usage",
-              data: params.cpus.map((cpu) => (cpu.used / cpu.total) * 100),
-              backgroundColor: params.cpus.map((cpu) => getColor((cpu.used / cpu.total) * 100)),
+              data: params.graphs.map((graph) => graph.used),
+              backgroundColor: params.graphs.map((graph) => graph.color || getColor(graph.used)),
             },
           ],
         }}
@@ -42,7 +44,7 @@ export default (params: Props) => {
               mode: "nearest",
               callbacks: {
                 label: (context: any) => {
-                  return " " + context.raw + "%";
+                  return " " + context.raw.toFixed(2) + (params.suffix || "%");
                 },
               },
             },

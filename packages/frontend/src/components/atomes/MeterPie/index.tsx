@@ -1,7 +1,7 @@
 import "react";
 
 import { Pie } from "../../../utils/chartjs";
-import { getColor } from "../../../types/color";
+import { getColor } from "../../../utils/color";
 
 import "./style.scss";
 
@@ -12,6 +12,7 @@ import "./style.scss";
 type Props = {
   label: string;
   used: number;
+  total?: number;
   width?: string;
   height?: string;
   showLegend?: boolean;
@@ -19,9 +20,11 @@ type Props = {
 
 export default (params: Props) => {
 
-  if (params.used < 0 || params.used > 100) {
+  const used = (params.used / (params.total || 100)) * 100;
+
+  /* if (params.used < 0 || params.used > 100) {
     return null;
-  }
+  } */
 
   return (
     <div className="container-pie" style={{ width: params.width || '350px' , height: params.height || '350px' }}>
@@ -30,7 +33,7 @@ export default (params: Props) => {
           labels: ["Used", "Not used"],
           datasets: [
             {
-              data: [params.used, 100 -  params.used],
+              data: [used, 100 - used],
               backgroundColor: [
                 getColor(params.used),
                 "rgb(54, 162, 235, 0)"
@@ -55,7 +58,7 @@ export default (params: Props) => {
               mode: "nearest",
               callbacks: {
                 label: (context: any) => {
-                  return " " + context.raw + "%";
+                  return " " + context.raw.toFixed(2) + "%";
                 },
               },
             },

@@ -5,36 +5,37 @@ import "./App.scss";
 import { useEffect, useState } from "react";
 
 import MeterPie from "./components/atomes/MeterPie";
-import CpuChart from "./components/atomes/CpuChart";
+import CpuChart from "./components/atomes/Chart";
 import ProcessGrid from "./components/atomes/ProcessGrid";
-import MetersRadar from "./components/atomes/MetersRadar";
-
-import { generateProcess } from "./utils/faker";
 import ProcessModal from "./components/atomes/ProcessModal";
 import { Process } from "./types";
 import useWebSocket from "./hooks/useWebSocket";
 import { Graph } from "./types/graph";
 import { extractData } from "./utils/otop";
+import Waiting from "./components/molecules/Waiting";
 
 export default () => {
   const { sendMessage, lastMessage, reload, ready } = useWebSocket({
     url: "ws://localhost:3000/ws",
   });
-  const [lastUpdate, setLastUpdate] = useState(0.0); // 0
+  const [lastHBUpdate, setLastHBUpdate] = useState(0.0); // 0
   const [lastHB, setLastHB] = useState(0); // 0
-  const [usedMemory, setUsedMemory] = useState(0); // 0
-  const [cpususage, setCpusUsage] = useState<Graph[]>([]);
 
-  const [processes, setProcesses] = useState<Process[]>(
-    new Array(10).fill(0).map(() => generateProcess())
-  ); // [
-  const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
+  const [lastDUpdate, setLastDUpdate] = useState(0.0); // 0
+  const [lastD, setLastD] = useState(0); // 0
+
+  const [pies, setPies] = useState<Graph[]>([]); // []
+  const [cpususage, setCpusUsage] = useState<Graph[]>([]);
+  const [networkusage, setNetworkUsage] = useState<Graph[]>([]);
+
+  const [processes, setProcesses] = useState<Process[]>([]); // [
+  const [selectedProcess, setSelectedProcess] = useState<number | undefined>();
 
   useEffect(() => {
     //ready ? sendMessage({ op: 1 }) : reload();
     let interval = setInterval(() => {
       ready ? sendMessage({ op: 1 }) : reload();
-    }, 5000);
+    }, 2000);
 
     return () => {
       clearInterval(interval);
@@ -43,10 +44,11 @@ export default () => {
 
   useEffect(() => {
     let interval = setInterval(() => {
-      //console.log("lastHB", lastHB);
-      //console.log("Date.now()", Math.floor(Date.now()) - lastHB);
-      setLastUpdate(lastHB > 0 ? (Math.floor(Date.now()) - lastHB) / 1000.0 : 0);
-    }, 500);
+      setLastHBUpdate(
+        lastHB > 0 ? (Math.floor(Date.now()) - lastHB) / 1000.0 : 0
+      );
+      setLastDUpdate(lastD > 0 ? (Math.floor(Date.now()) - lastD) / 1000.0 : 0);
+    }, 50);
 
     return () => {
       clearInterval(interval);
@@ -55,75 +57,69 @@ export default () => {
 
   useEffect(() => {
     if (!lastMessage) return;
-    //console.log(lastMessage);
     if (lastMessage.op === 2) {
       const data = extractData(lastMessage?.d);
       if (!data) return;
       console.log(data);
-      setUsedMemory((data.memory.used / data.memory.total) * 100);
+      setPies(data.pies);
       setCpusUsage(data.cpus);
       setProcesses(data.processes);
+      setLastD(data.timestamp);
+      setNetworkUsage(data.network);
     } else if (lastMessage.op === 11) {
       const lastHB = lastMessage.d?.last_heartbeat;
       if (lastHB) setLastHB(lastHB);
     }
   }, [lastMessage]);
 
-  /* const nbCpu = (faker.number.int() % 120) + 8;
-  const cpusUsage = Array.from(Array(nbCpu).keys()).map((i) => ({
-    id: i + 1,
-    usage: faker.number.int() % 100,
-  })); */
-
-  if (!ready) return <div>Connecting...</div>;
+  if (!ready) return <Waiting />;
 
   return (
     <>
-      {selectedProcess && (
+      {selectedProcess && processes.find((p) => p.pid === selectedProcess) && (
         <ProcessModal
-          close={() => setSelectedProcess(null)}
-          process={selectedProcess}
+          kill={(pid: number) => sendMessage({ op: 3, d: { pid, signal: 9 } })}
+          close={() => setSelectedProcess(undefined)}
+          process={processes.find((p) => p.pid === selectedProcess)}
         />
       )}
       <header>
         <img src="/logo.png" alt="logo" width={75} height={75} />
         <h1>Otop - Dashboard</h1>
-        <h2>Last update {lastUpdate}s ago</h2>
+        <h2>
+          Last heartbeat was {lastHBUpdate}s ago / Last update was {lastDUpdate}
+          s ago
+        </h2>
       </header>
       <main>
         <div className="gl-container">
-          <MetersRadar />
-          <CpuChart cpus={cpususage} />
-          <div className="meters-pie">
-            {new Array("Memory", "CPU", "Swap", "Network").map(
-              (label, index) => (
-                <div
-                  key={index}
-                  style={{
-                    gridArea: `${index >= 2 ? "2" : "1"} / ${
-                      (index % 2) + 1
-                    } / ${index >= 2 ? "3" : "2"} / ${(index % 2) + 2}`,
-                  }}
-                >
-                  <MeterPie
-                    label={label}
-                    used={usedMemory}
-                    width="150px"
-                    height="150px"
-                  />
-                </div>
-              )
-            )}
-          </div>
+          {/* <MetersRadar graphs={pies} /> */}
+          <CpuChart graphs={networkusage} suffix="MB/s" width="350px" />
+          <CpuChart graphs={cpususage} />
+          <ul className="meters-pie">
+            {pies.map((pie, index) => (
+              <li
+                key={index}
+                style={{
+                  gridArea: `${index >= 2 ? "2" : "1"} / ${(index % 2) + 1} / ${
+                    index >= 2 ? "3" : "2"
+                  } / ${(index % 2) + 2}`,
+                }}
+              >
+                <MeterPie
+                  label={pie.id + ""}
+                  used={pie.used}
+                  total={pie.total}
+                  width="150px"
+                  height="150px"
+                />
+              </li>
+            ))}
+          </ul>
         </div>
         <div className="proc-container">
           <ProcessGrid
-            OpenProcess={(pid: number) => {
-              const process = processes.find((p) => p.pid === pid);
-              if (process) {
-                setSelectedProcess(process);
-              }
-            }}
+            OpenProcess={(pid: number) => setSelectedProcess(pid)}
             processes={processes}
           />
         </div>

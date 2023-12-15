@@ -21,8 +21,8 @@ pub enum GatewayEvent {
 }
 
 pub const GATEWAY_VERSION: u8 = 6;
-pub const GATEWAY_HEARTBEAT_INTERVAL: u64 = 12 * 1000; // 12 seconds
-pub const GATEWAY_DATA_INTERVAL: u64 = 5 * 1000; // 5 seconds
+pub const GATEWAY_HEARTBEAT_INTERVAL: u128 = 12 * 1000; // 12 seconds
+pub const GATEWAY_DATA_INTERVAL: u128 = 1000; // 1 seconds
 
 async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
     con.lock()
@@ -56,8 +56,9 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
                 let msg = msg.to_text().unwrap();
 
                 if msg.is_empty() {
-                    println!("Received an empty message from the client !");
-                    return;
+                    con.lock().await.open = false;
+                    println!("Connection is closed, aborting.");
+                    break;
                 }
 
                 println!("Received a message from the client: {:?}", msg);
@@ -76,17 +77,19 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
                     // Handle the Heartbeat event
                     op if op == GatewayEvent::Heartbeat as i64 => {
                         println!("Received a heartbeat from the client !");
-                        con.lock().await.last_heartbeat = SystemTime::now()
+                        let t = SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .unwrap()
-                            .as_millis()
-                            as u64;
+                            .as_millis();
+                        con.lock().await.last_heartbeat = t;
                         con.lock()
                             .await
                             .send(
                                 socket.clone(),
                                 GatewayEvent::HeartbeatAck as u8,
-                                serde_json::json!({}),
+                                serde_json::json!({
+                                    "last_heartbeat": t
+                                }),
                             )
                             .await;
                     }
@@ -126,7 +129,7 @@ impl Gateway {
         }
 
         if self.connections.len() >= self.max_connections as usize {
-            println!("Connection already exists, aborting.");
+            println!("Maximum number of connections reached, aborting.");
             return;
         }
 

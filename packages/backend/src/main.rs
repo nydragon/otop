@@ -9,7 +9,7 @@ use axum::{extract::ws::WebSocketUpgrade, routing::get, Router};
 use axum_extra::TypedHeader;
 use gateway::GATEWAY_DATA_INTERVAL;
 use headers::{self};
-use process::parser::Parser;
+use process::data::Data;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -47,7 +47,7 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_millis() as u64;
+            .as_millis();
         // ===== Heartbeat =====
         let mut remove_idxs: Vec<usize> = Vec::new();
         println!(
@@ -58,10 +58,15 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
         for (i, con) in gateway.lock().await.connections.iter().enumerate() {
             match con.1.try_lock() {
                 Ok(mut c) => {
+                    if !c.open {
+                        println!("Connection is closed, removing.");
+                        remove_idxs.push(i);
+                        continue;
+                    }
+
                     println!(
-                        "Checking heartbeat for client at {}, last heartbeat {} was {}s ago",
+                        "Checking heartbeat for client at ({}), last heartbeat was {}s ago",
                         c.addr,
-                        c.last_heartbeat,
                         ((current_time - c.last_heartbeat) / 1000) as f32
                     );
                     let diff = current_time - c.last_heartbeat;
@@ -114,10 +119,7 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
                         c.send(
                             socket.clone(),
                             GatewayEvent::Data as u8,
-                            serde_json::json!({
-                                "cpus": process::modules::cpu::CPUs::parse().unwrap(),
-                                "memory": process::modules::memory::Memory::parse().unwrap()
-                            }),
+                            serde_json::json!(Data::new()),
                         )
                         .await;
 
@@ -137,7 +139,7 @@ async fn run(gateway: Arc<Mutex<Gateway>>) {
 
 #[tokio::main]
 async fn main() {
-    let gateway = Arc::new(Mutex::new(Gateway::new(100)));
+    let gateway = Arc::new(Mutex::new(Gateway::new(1)));
     //let mut gateway_clone = gateway.clone();
 
     tokio::spawn(run(gateway.clone()));

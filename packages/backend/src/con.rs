@@ -5,8 +5,8 @@ use tokio::sync::Mutex;
 
 pub struct Con {
     pub addr: std::net::SocketAddr, // The address of the client
-    pub last_heartbeat: u64,        // The last heartbeat received from the client
-    pub last_time_data_sent: u64,   // The last time data was sent to the client
+    pub last_heartbeat: u128,       // The last heartbeat received from the client
+    pub last_time_data_sent: u128,  // The last time data was sent to the client
     pub open: bool,
 }
 
@@ -27,11 +27,10 @@ impl Con {
         });
 
         let message = axum::extract::ws::Message::Text(json.to_string());
-        socket
-            .lock()
-            .await
-            .send(message)
-            .await
-            .expect("ALARM ALARM");
+        let send = socket.lock().await.send(message).await;
+        // Close con if err
+        if send.is_err() {
+            self.open = false;
+        }
     }
 }

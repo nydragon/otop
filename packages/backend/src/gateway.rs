@@ -16,8 +16,29 @@ pub struct Gateway {
 pub enum GatewayEvent {
     Heartbeat = 1,
     Data = 2,
+    Terminate = 3,
     Hello = 10,
     HeartbeatAck = 11,
+    Unknown = 99,
+}
+
+#[derive(serde::Deserialize)]
+struct Terminate {
+    pid: i32,
+    signal: i32,
+}
+
+impl From<i64> for GatewayEvent {
+    fn from(value: i64) -> Self {
+        match value {
+            1 => GatewayEvent::Heartbeat,
+            2 => GatewayEvent::Data,
+            3 => GatewayEvent::Terminate,
+            10 => GatewayEvent::Hello,
+            11 => GatewayEvent::HeartbeatAck,
+            _ => GatewayEvent::Unknown,
+        }
+    }
 }
 
 pub const GATEWAY_VERSION: u8 = 6;
@@ -73,9 +94,9 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
                 let op = json["op"].as_i64().unwrap();
 
                 println!("LHB: {}", con.lock().await.last_heartbeat);
-                match op {
+                match GatewayEvent::from(op) {
                     // Handle the Heartbeat event
-                    op if op == GatewayEvent::Heartbeat as i64 => {
+                    GatewayEvent::Heartbeat => {
                         println!("Received a heartbeat from the client !");
                         let t = SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
@@ -93,10 +114,17 @@ async fn launch_con(socket: Arc<Mutex<WebSocket>>, con: Arc<Mutex<Con>>) {
                             )
                             .await;
                     }
-                    _ => {
+                    GatewayEvent::Terminate => {
+                        if let Ok(res) = serde_json::from_str::<Terminate>(&json["d"].to_string()) {
+                            kill_process(res.pid, res.signal);
+                        } else {
+                            println!("Data has an incorrect structure");
+                        }
+                    }
+                    GatewayEvent::Unknown | _ => {
                         println!("Received an unknown/illegal message from the client !");
                     }
-                }
+                };
             } else {
                 println!("Received an illegal message from the client !");
                 return;
@@ -141,4 +169,11 @@ impl Gateway {
         tokio::spawn(launch_con(socket, con));
         println!("Pushing connection to the list...");
     }
+}
+
+/// Send an interrupt signal to a specified process.
+pub fn kill_process(pid: i32, sig: i32) {
+    unsafe {
+        libc::kill(pid, sig);
+    };
 }
